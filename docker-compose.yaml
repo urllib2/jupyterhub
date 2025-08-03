@@ -1,0 +1,132 @@
+name: ros2-teaching-vps
+
+services:
+  ros2-teaching:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        - UBUNTU_VERSION=24.04
+    image: ros2-teaching-vps:latest
+    container_name: ros2-teaching-vps
+    hostname: ros2-teaching
+    
+    ports:
+      - "8000:8000"    # JupyterHub
+      - "6080:6080"    # noVNC GUI
+    
+    volumes:
+      - type: bind
+        source: ./shared_workspace
+        target: /home/jovyan/shared_workspace
+      - type: bind
+        source: ./student_notebooks
+        target: /home/jovyan/notebooks
+      - type: bind
+        source: ./jupyterhub_config.py
+        target: /srv/jupyterhub/jupyterhub_config.py
+        read_only: true
+      - type: bind
+        source: ./start-services.sh
+        target: /usr/local/bin/start-services.sh
+        read_only: true
+      - ros2_workspace:/home/jovyan/ros2_ws
+      
+    # Optimized resource limits for VPS
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    
+    shm_size: 512mb
+    restart: unless-stopped
+    user: root
+    
+    environment:
+      # Display settings
+      DISPLAY: ":1"
+      VNC_RESOLUTION: "1024x768"
+      
+      # ESSENTIAL CPU-only rendering for VPS
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      MESA_GL_VERSION_OVERRIDE: "3.3"
+      MESA_GLSL_VERSION_OVERRIDE: "330"
+      GALLIUM_DRIVER: "llvmpipe"
+      LP_NUM_THREADS: "2"
+      __GL_SYNC_TO_VBLANK: "0"
+      MESA_GLTHREAD: "false"
+      
+      # ROS2 settings
+      ROS_DISTRO: "jazzy"
+      ROS_DOMAIN_ID: "42"
+      
+      # User settings
+      USER: "jovyan"
+      HOME: "/home/jovyan"
+      VENV_PATH: "/opt/venv"
+      
+      # Gazebo VPS optimization
+      GZ_VERSION: "harmonic"
+      OGRE_RTT_MODE: "Copy"
+      
+      # GUI settings for VPS
+      QT_X11_NO_MITSHM: "1"
+      QT_GRAPHICSSYSTEM: "native"
+      
+      # Runtime settings
+      XDG_RUNTIME_DIR: "/tmp/runtime-jovyan"
+      XDG_SESSION_TYPE: "x11"
+      
+      # CRITICAL: JupyterHub networking fix
+      JUPYTERHUB_API_URL: "http://127.0.0.1:8081/hub/api"
+      JUPYTERHUB_BASE_URL: "/hub/"
+   
+    command: /usr/local/bin/start-services.sh
+    
+    # Minimal logging for VPS
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+        compress: "true"
+    
+    # VPS-optimized healthcheck
+    healthcheck:
+      test: 
+        - "CMD-SHELL"
+        - "curl -f http://localhost:8000/hub/health || exit 1"
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 3m
+      start_interval: 30s
+      
+    # Security for VPS
+    privileged: false
+    security_opt:
+      - seccomp:unconfined
+    
+    # Minimal tmpfs for VPS
+    tmpfs:
+      - /tmp:rw,exec,nosuid,size=512m,mode=1777
+      - /run:rw,exec,nosuid,size=128m,mode=755
+      - /dev/shm:rw,exec,nosuid,size=512m,mode=1777
+
+    # Network configuration
+    networks:
+      - ros2-network
+
+# Networks
+networks:
+  ros2-network:
+    driver: bridge
+
+# Volumes
+volumes:
+  ros2_workspace:
+    driver: local
