@@ -350,6 +350,7 @@ RUN chmod +x /usr/local/bin/start-services.sh
 # User environment
 USER ${USER}
 RUN echo 'source /opt/ros/jazzy/setup.bash' >> ~/.bashrc && \
+    echo 'source /opt/ros/jazzy/setup.bash' >> ~/.profile && \
     echo 'export DISPLAY=:1' >> ~/.bashrc && \
     echo 'export LIBGL_ALWAYS_SOFTWARE=1' >> ~/.bashrc
 
