@@ -15,7 +15,9 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/* && \
         curl gnupg2 lsb-release wget git \
         python3 python3-venv python3-pip \
         sudo ca-certificates \
-        openssl && \
+        openssl \
+	vim  \
+	nano && \
     curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2.list
 
@@ -27,16 +29,12 @@ RUN for i in {1..3}; do \
     done && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" > /etc/apt/sources.list.d/gazebo-stable.list
 
-# Install minimal ROS2 packages
+# Install ROS2 packages
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        ros-${ROS_DISTRO}-ros-base \
-        ros-${ROS_DISTRO}-rviz2 \
+        ros-${ROS_DISTRO}-desktop \
         python3-colcon-common-extensions \
-        python3-rosdep \
-        ros-${ROS_DISTRO}-rclpy \
-        ros-${ROS_DISTRO}-std-msgs \
-        ros-${ROS_DISTRO}-geometry-msgs && \
+        python3-rosdep && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Gazebo (minimal)
