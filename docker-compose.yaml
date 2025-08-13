@@ -42,14 +42,14 @@ services:
           memory: 512M
           cpus: '0.5'
     
-    shm_size: 512mb
+    shm_size: 1g
     restart: unless-stopped
     user: root
     
     environment:
       # Display settings
       DISPLAY: ":1"
-      VNC_RESOLUTION: "1024x768"
+      VNC_RESOLUTION: "1920x1080"
       
       # ESSENTIAL CPU-only rendering for VPS
       LIBGL_ALWAYS_SOFTWARE: "1"

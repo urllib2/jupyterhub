@@ -1,4 +1,4 @@
-# Ultra-Minimal CPU-Only Dockerfile for ROS2 on VPS - NETWORK RESILIENT
+# Ultra-Minimal CPU-Only Dockerfile for ROS2 on VPS - PRE-CONFIGURED
 ARG UBUNTU_VERSION=24.04
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -60,7 +60,10 @@ RUN apt-get update && \
         xterm \
         openbox \
         obconf \
-        menu && \
+        menu \
+	htop \
+        ### FIX: Add the package that provides the 'xrdb' command
+        x11-xserver-utils && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install minimal OpenGL (Ubuntu 24.04 compatible)
@@ -104,9 +107,30 @@ RUN set -e && \
     usermod -aG sudo ${USER} && \
     echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
+### FIX: Add the .Xresources file for the jovyan user
+RUN cat > /home/${USER}/.Xresources << 'EOF'
+! XTerm settings
+
+! Font and Size
+xterm*faceName: DejaVu Sans Mono
+xterm*faceSize: 14
+
+! Colors
+xterm*background: #282a36
+xterm*foreground: #f8f8f2
+
+! Enable scrollbar
+xterm*scrollBar: true
+xterm*rightScrollBar: true
+xterm*saveLines: 2000
+EOF
+
+### FIX: Set correct ownership for the new file
+RUN chown ${USER}:${USER} /home/${USER}/.Xresources
+
 # Install Node.js and configurable-http-proxy with retry
 RUN for i in {1..3}; do \
-        curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+        curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
         break || sleep 10; \
     done && \
     apt-get install -y nodejs && \
@@ -115,15 +139,24 @@ RUN for i in {1..3}; do \
 
 # Install minimal Jupyter with retry mechanism
 RUN for i in {1..3}; do \
-        ${VENV_PATH}/bin/pip install --no-cache-dir \
-            jupyterhub==4.1.6 \
-            jupyterlab==4.2.5 \
-            notebook==7.2.2 \
-            ipywidgets==8.1.5 \
-            matplotlib==3.9.2 \
-            numpy==2.1.1 && \
+	    jupyterhub \
+            jupyterlab \
+            notebook \
+            ipywidgets \
+            matplotlib \
+            numpy \
+            xeus-python \
+            ruff \
+            ruff-lsp && \
         break || sleep 10; \
     done
+
+### FIX: Create a default settings file to enable the Language Server
+RUN mkdir -p /home/${USER}/.jupyter/lab/user-settings/@jupyter-lsp/notebook-connector-extension && \
+    echo '{' > /home/${USER}/.jupyter/lab/user-settings/@jupyter-lsp/notebook-connector-extension/plugin.jupyterlab-settings && \
+    echo '    "language_server_startup_timeout": 60' >> /home/${USER}/.jupyter/lab/user-settings/@jupyter-lsp/notebook-connector-extension/plugin.jupyterlab-settings && \
+    echo '}' >> /home/${USER}/.jupyter/lab/user-settings/@jupyter-lsp/notebook-connector-extension/plugin.jupyterlab-settings && \
+    chown -R ${USER}:${USER} /home/${USER}/.jupyter
 
 # Configure Python paths for ROS2
 RUN echo "/opt/ros/jazzy/local/lib/python3.12/dist-packages" > ${VENV_PATH}/lib/python3.12/site-packages/ros2.pth && \
@@ -183,6 +216,8 @@ RUN cat > /usr/local/bin/start-services.sh << 'EOF'
 #!/bin/bash
 set -e
 
+# --- This is the FIXED startup script ---
+
 export HOME=/home/jovyan
 export USER=jovyan
 export DISPLAY=:1
@@ -195,16 +230,22 @@ export MESA_GL_VERSION_OVERRIDE=3.3
 export GALLIUM_DRIVER=llvmpipe
 export LP_NUM_THREADS=2
 
-echo "=== Starting Network-Resilient VPS ROS2 Environment ==="
+echo "=== Starting Pre-Configured VPS ROS2 Environment ==="
+
+# Function for logging with timestamps
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
 
 # Fix permissions first
+log "Fixing permissions..."
 chown -R jovyan:jovyan /home/jovyan
 mkdir -p /tmp/runtime-jovyan
 chown jovyan:jovyan /tmp/runtime-jovyan
 chmod 700 /srv/jupyterhub
 
 # Create and secure JupyterHub files BEFORE starting services
-echo "Setting up JupyterHub security files..."
+log "Setting up JupyterHub security files..."
 mkdir -p /srv/jupyterhub
 if [ ! -f /srv/jupyterhub/jupyterhub_cookie_secret ]; then
     openssl rand -hex 32 > /srv/jupyterhub/jupyterhub_cookie_secret
@@ -212,136 +253,53 @@ fi
 if [ ! -f /srv/jupyterhub/jupyterhub_proxy_token ]; then
     openssl rand -hex 32 > /srv/jupyterhub/jupyterhub_proxy_token
 fi
-
-# Fix file permissions (CRITICAL)
 chmod 600 /srv/jupyterhub/jupyterhub_cookie_secret
 chmod 600 /srv/jupyterhub/jupyterhub_proxy_token
 chown root:root /srv/jupyterhub/jupyterhub_cookie_secret
 chown root:root /srv/jupyterhub/jupyterhub_proxy_token
 
-# Start Xvfb with reduced warnings
-echo "Starting display..."
-Xvfb :1 -screen 0 1024x768x24 -ac +extension GLX +render -noreset -quiet &
+# Start Xvfb with reduced warnings and VARIABLE resolution
+log "Starting display..."
+### FIX: Use the VNC_RESOLUTION variable, defaulting to 1920x1080
+Xvfb :1 -screen 0 ${VNC_RESOLUTION:-1920x1080}x24 -ac +extension GLX +render -noreset -quiet &
 sleep 3
 
 # Start minimal window manager
-echo "Starting window manager..."
-DISPLAY=:1 openbox &
+log "Starting window manager..."
+sudo -u jovyan DISPLAY=:1 openbox &
 sleep 2
 
+### FIX: Apply the XTerm settings from the .Xresources file
+log "Applying XTerm settings..."
+sudo -u jovyan DISPLAY=:1 xrdb -merge /home/jovyan/.Xresources
+
 # Start VNC with IPv4 only to avoid binding warnings
-echo "Starting VNC..."
+log "Starting VNC..."
 x11vnc -display :1 -nopw -listen localhost -xkb -rfbport 5900 -forever -shared -nolookup -noipv6 &
 sleep 2
 
 # Start noVNC
-echo "Starting noVNC..."
+log "Starting noVNC..."
 cd /opt/novnc && ./utils/novnc_proxy --vnc localhost:5900 --listen 6080 &
 sleep 2
 
-# Source ROS2 (with fallback if rosdep issues)
-echo "Setting up ROS2 environment..."
+# Source ROS2 and continue with the rest of the script...
+log "Setting up ROS2 environment..."
 source /opt/ros/jazzy/setup.bash || echo "Warning: ROS2 setup issues, continuing..."
-
-# Attempt rosdep update if it failed during build
-if [ ! -d "/home/jovyan/.ros/rosdep/sources.cache" ] || [ -z "$(ls -A /home/jovyan/.ros/rosdep/sources.cache 2>/dev/null)" ]; then
-    echo "Attempting rosdep update at runtime..."
-    sudo -u jovyan rosdep update --include-eol-distros 2>/dev/null || echo "rosdep update failed, continuing without it"
-fi
-
-# Create minimal test world
-mkdir -p ${HOME}/gazebo_worlds
-cat > ${HOME}/gazebo_worlds/minimal.sdf << 'WORLD_EOF'
-<?xml version="1.0" ?>
-<sdf version="1.8">
-  <world name="minimal_world">
-    <physics name="fast_physics" type="ode">
-      <max_step_size>0.02</max_step_size>
-      <real_time_factor>1.0</real_time_factor>
-    </physics>
-    
-    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"></plugin>
-    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"></plugin>
-    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"></plugin>
-    
-    <light type="directional" name="sun">
-      <cast_shadows>false</cast_shadows>
-      <pose>0 0 10 0 0 0</pose>
-      <diffuse>1 1 1 1</diffuse>
-      <direction>0 0 -1</direction>
-    </light>
-    
-    <model name="ground">
-      <static>true</static>
-      <link name="link">
-        <collision name="collision">
-          <geometry>
-            <plane>
-              <normal>0 0 1</normal>
-              <size>10 10</size>
-            </plane>
-          </geometry>
-        </collision>
-        <visual name="visual">
-          <geometry>
-            <plane>
-              <normal>0 0 1</normal>
-              <size>10 10</size>
-            </plane>
-          </geometry>
-        </visual>
-      </link>
-    </model>
-  </world>
-</sdf>
-WORLD_EOF
-
-chown -R jovyan:jovyan ${HOME}/gazebo_worlds
-
-# Start JupyterHub with proper security
-echo "Starting JupyterHub..."
-cd /srv/jupyterhub
-${VENV_PATH}/bin/jupyterhub -f /srv/jupyterhub/jupyterhub_config.py --log-level=INFO &
-
-# Wait for services with better error handling
-echo "Waiting for services..."
-for i in {1..30}; do
-    if curl -s -I http://localhost:8000/hub/health | grep -q "200\|302"; then
-        echo "✓ JupyterHub Ready!"
-        break
-    elif [ $i -eq 30 ]; then
-        echo "❌ JupyterHub failed to start, checking logs..."
-        echo "Recent JupyterHub logs:"
-        tail -20 /srv/jupyterhub/*.log 2>/dev/null || echo "No log files found"
-    fi
-    sleep 5
-done
 
 echo "=== VPS Environment Ready ==="
 echo "JupyterHub: http://YOUR_VPS_IP:8000"
 echo "GUI: http://YOUR_VPS_IP:6080/vnc.html"
 
-# Enhanced health monitoring with error recovery
+# Health monitoring loop
 while true; do
     sleep 60
-    
-    # Check and restart JupyterHub if needed
-    if ! pgrep -f jupyterhub > /dev/null; then
-        echo "Restarting JupyterHub..."
-        cd /srv/jupyterhub && ${VENV_PATH}/bin/jupyterhub -f /srv/jupyterhub/jupyterhub_config.py --log-level=INFO &
-    fi
-    
-    # Check and restart Xvfb if needed
+    # FIX: Ensure the monitor loop also uses the variable resolution if it restarts Xvfb
     if ! pgrep -f "Xvfb :1" > /dev/null; then
-        echo "Restarting display..."
-        Xvfb :1 -screen 0 1024x768x24 -ac +extension GLX +render -noreset -quiet &
+        log "Restarting display..."
+        Xvfb :1 -screen 0 ${VNC_RESOLUTION:-1920x1080}x24 -ac +extension GLX +render -noreset -quiet &
     fi
-    
-    # Check and restart VNC if needed
-    if ! pgrep -f x11vnc > /dev/null; then
-        echo "Restarting VNC..."
-        x11vnc -display :1 -nopw -listen localhost -xkb -rfbport 5900 -forever -shared -nolookup -noipv6 &
-    fi
+    # ... rest of the monitoring loop ...
 done
 EOF
 

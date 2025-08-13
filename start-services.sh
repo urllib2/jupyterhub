@@ -98,7 +98,7 @@ sleep 3
 
 # Start Xvfb WITHOUT -quiet flag (not supported in this version)
 log "Starting display server..."
-Xvfb :1 -screen 0 1024x768x24 -ac +extension GLX +render -noreset &
+Xvfb :1 -screen 0 ${VNC_RESOLUTION:-1024x768}x24 -ac +extension GLX +render -noreset &
 XVFB_PID=$!
 
 # Wait for Xvfb to be ready with better error handling
@@ -365,7 +365,7 @@ while true; do
         log "Restarting Xvfb..."
         pkill -f "Xvfb :1" || true
         sleep 2
-        Xvfb :1 -screen 0 1024x768x24 -ac +extension GLX +render -noreset &
+	Xvfb :1 -screen 0 ${VNC_RESOLUTION:-1024x768}x24 -ac +extension GLX +render -noreset &
     fi
     
     # Check x11vnc
