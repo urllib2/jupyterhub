@@ -26,14 +26,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update && apt-get install -y --no-install-recommends gz-harmonic && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 4. Install ROS-Gazebo bridge.
+# 4. Install ROS-Gazebo bridge and additional ROS2 development tools.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-${ROS_DISTRO}-ros-gz-bridge ros-${ROS_DISTRO}-ros-gz-sim && \
+    ros-${ROS_DISTRO}-ros-gz-bridge ros-${ROS_DISTRO}-ros-gz-sim \
+    ros-${ROS_DISTRO}-rqt-* ros-${ROS_DISTRO}-rviz2 \
+    ros-${ROS_DISTRO}-robot-state-publisher ros-${ROS_DISTRO}-joint-state-publisher-gui \
+    ros-${ROS_DISTRO}-tf2-tools ros-${ROS_DISTRO}-tf2-geometry-msgs \
+    ros-${ROS_DISTRO}-navigation2 ros-${ROS_DISTRO}-nav2-bringup \
+    ros-${ROS_DISTRO}-turtlesim ros-${ROS_DISTRO}-demo-nodes-cpp ros-${ROS_DISTRO}-demo-nodes-py && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 5. Install GUI essentials.
+# 5. Install GUI essentials and development tools.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    xvfb x11vnc websockify x11-utils xterm openbox obconf menu x11-xserver-utils && \
+    xvfb x11vnc websockify x11-utils xterm openbox obconf menu x11-xserver-utils \
+    tree htop tmux screen net-tools && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 6. Install graphics and UI libraries.
@@ -62,14 +68,18 @@ RUN apt-get update && apt-get install -y nodejs npm && \
     ln -s /usr/local/bin/configurable-http-proxy /usr/bin/configurable-http-proxy && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 10. Create Virtual Environment and Install Jupyter packages.
+# 10. Create Virtual Environment and Install Jupyter packages + Working Tools.
 RUN python3 -m venv ${VENV_PATH} && \
     ${VENV_PATH}/bin/pip install --upgrade pip && \
     ${VENV_PATH}/bin/pip install --no-cache-dir \
-        jupyterhub jupyterlab notebook ipywidgets matplotlib numpy \
-        xeus-python
+        jupyterhub jupyterlab notebook ipywidgets matplotlib numpy scipy \
+        xeus-python ruff \
+        plotly dash seaborn pandas \
+        opencv-python pillow \
+        jupyterlab-git \
+        jupyterlab-code-formatter jupyterlab-lsp python-lsp-server
 
-# 11. Create user directories, config files, and set all permissions.
+# 11. Create user directories, config files, and JupyterHub multi-user configuration.
 RUN mkdir -p /srv/jupyterhub ${HOME}/shared_workspace ${HOME}/notebooks ${HOME}/ros2_ws/src ${HOME}/.config/openbox && \
     echo '! XTerm settings' > ${HOME}/.Xresources && \
     echo 'xterm*faceName: DejaVu Sans Mono' >> ${HOME}/.Xresources && \
@@ -95,8 +105,91 @@ RUN mkdir -p /srv/jupyterhub ${HOME}/shared_workspace ${HOME}/notebooks ${HOME}/
     echo '      <action name="Exit"/>' >> ${HOME}/.config/openbox/menu.xml && \
     echo '    </item>' >> ${HOME}/.config/openbox/menu.xml && \
     echo '  </menu>' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '</openbox_menu>' >> ${HOME}/.config/openbox/menu.xml && \
-    chown -R ${USER}:${USER} ${HOME} && \
+    echo '</openbox_menu>' >> ${HOME}/.config/openbox/menu.xml
+
+# Create Ruff configuration for ROS2 development
+RUN cat > ${HOME}/pyproject.toml << 'EOF'
+[tool.ruff]
+# Set the maximum line length to match ROS2 conventions
+line-length = 100
+
+# Enable specific rule sets appropriate for ROS2/robotics development
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings  
+    "F",    # Pyflakes
+    "I",    # isort (import sorting)
+    "N",    # pep8-naming
+    "UP",   # pyupgrade (modernize Python syntax)
+    "B",    # flake8-bugbear (likely bugs)
+    "A",    # flake8-builtins (builtin shadowing)
+    "C4",   # flake8-comprehensions
+    "PIE",  # flake8-pie (unnecessary code)
+    "SIM",  # flake8-simplify
+    "RET",  # flake8-return (return statements)
+    "ARG",  # flake8-unused-arguments
+]
+
+# Ignore specific rules that are common in ROS2/educational code
+ignore = [
+    "E501",   # Line too long (handled by line-length setting)
+    "N999",   # Invalid module name (ROS2 packages often have underscores)
+    "N806",   # Variable in function should be lowercase (ROS2 uses camelCase sometimes)
+    "ARG001", # Unused function argument (common in ROS2 callbacks)
+    "ARG002", # Unused method argument (common in ROS2 class methods)
+    "B008",   # Do not perform function calls in argument defaults (common in ROS2)
+]
+
+# Exclude common ROS2 directories and generated files
+exclude = [
+    ".bzr",
+    ".direnv", 
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "install",      # ROS2 install directory
+    "log",          # ROS2 log directory
+    "build",        # ROS2 build directory
+]
+
+# Target Python 3.10+ (Ubuntu 24.04 default)
+target-version = "py310"
+
+[tool.ruff.format]
+# Use single quotes for consistency with ROS2 style
+quote-style = "single"
+
+# Indent with 4 spaces
+indent-style = "space"
+
+[tool.ruff.lint.isort]
+# Group imports appropriately for ROS2
+known-first-party = ["rclpy", "rclcpp"]
+known-third-party = ["numpy", "matplotlib", "cv2", "tf2_ros", "geometry_msgs", "sensor_msgs", "std_msgs"]
+
+[tool.ruff.lint.pep8-naming]
+# Allow ROS2 style class names and constants
+classmethod-decorators = ["classmethod"]
+staticmethod-decorators = ["staticmethod"]
+EOF
+
+RUN chown -R ${USER}:${USER} ${HOME} && \
     chmod 700 /srv/jupyterhub
 
 # 12. Initialize rosdep.
@@ -105,7 +198,8 @@ RUN rosdep init || true && \
 
 # 13. Final container setup.
 USER ${USER}
-RUN echo 'source /opt/ros/jazzy/setup.bash' >> ~/.bashrc
+RUN echo 'source /opt/ros/jazzy/setup.bash' >> ~/.bashrc && \
+    echo 'export PATH=${VENV_PATH}/bin:$PATH' >> ~/.bashrc
 USER root
 WORKDIR /home/${USER}
 EXPOSE 8000 6080
