@@ -59,6 +59,8 @@ RUN export OLD_USER=$(id -un 1000 2>/dev/null || true) && \
 # 9. Install Node.js and JupyterHub proxy.
 RUN apt-get update && apt-get install -y nodejs npm && \
     npm install -g configurable-http-proxy && \
+    ### FINAL FIX: Create a symbolic link to the correct location.
+    ln -s /usr/local/bin/configurable-http-proxy /usr/bin/configurable-http-proxy && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 10. Create Virtual Environment and Install Jupyter packages.
@@ -80,6 +82,31 @@ xterm*scrollBar: true
 xterm*rightScrollBar: true
 xterm*saveLines: 2000
 EOF
+
+# Create a clean, minimal Openbox menu for the user
+RUN mkdir -p /home/${USER}/.config/openbox && \
+    cat > /home/${USER}/.config/openbox/menu.xml << 'MENU_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<openbox_menu xmlns="http://openbox.org/3.4/menu">
+  <menu id="root-menu" label="Desktop">
+    <item label="Terminal">
+      <action name="Execute">
+        <command>xterm</command>
+      </action>
+    </item>
+    <separator/>
+    <item label="Reconfigure">
+      <action name="Reconfigure"/>
+    </item>
+    <item label="Exit">
+      <action name="Exit"/>
+    </item>
+  </menu>
+</openbox_menu>
+EOF
+
+# Set permissions on the new config directory
+RUN chown -R ${USER}:${USER} /home/${USER}/.config
 
 # 12. Set final permissions.
 RUN chown -R ${USER}:${USER} ${HOME} && \
