@@ -1,4 +1,4 @@
-# Final, STABLE Dockerfile - v3
+# Final, STABLE Dockerfile - v5 (Syntax Guaranteed)
 ARG UBUNTU_VERSION=24.04
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -59,7 +59,6 @@ RUN export OLD_USER=$(id -un 1000 2>/dev/null || true) && \
 # 9. Install Node.js and JupyterHub proxy.
 RUN apt-get update && apt-get install -y nodejs npm && \
     npm install -g configurable-http-proxy && \
-    ### FINAL FIX: Create a symbolic link to the correct location.
     ln -s /usr/local/bin/configurable-http-proxy /usr/bin/configurable-http-proxy && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -70,53 +69,41 @@ RUN python3 -m venv ${VENV_PATH} && \
         jupyterhub jupyterlab notebook ipywidgets matplotlib numpy \
         xeus-python
 
-# 11. Create user directories and .Xresources theme.
-RUN mkdir -p /srv/jupyterhub ${HOME}/shared_workspace ${HOME}/notebooks ${HOME}/ros2_ws/src && \
-    cat > ${HOME}/.Xresources << 'EOF'
-! XTerm settings
-xterm*faceName: DejaVu Sans Mono
-xterm*faceSize: 14
-xterm*background: #282a36
-xterm*foreground: #f8f8f2
-xterm*scrollBar: true
-xterm*rightScrollBar: true
-xterm*saveLines: 2000
-EOF
-
-# Create a clean, minimal Openbox menu for the user
-RUN mkdir -p /home/${USER}/.config/openbox && \
-    cat > /home/${USER}/.config/openbox/menu.xml << 'MENU_EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<openbox_menu xmlns="http://openbox.org/3.4/menu">
-  <menu id="root-menu" label="Desktop">
-    <item label="Terminal">
-      <action name="Execute">
-        <command>xterm</command>
-      </action>
-    </item>
-    <separator/>
-    <item label="Reconfigure">
-      <action name="Reconfigure"/>
-    </item>
-    <item label="Exit">
-      <action name="Exit"/>
-    </item>
-  </menu>
-</openbox_menu>
-EOF
-
-# Set permissions on the new config directory
-RUN chown -R ${USER}:${USER} /home/${USER}/.config
-
-# 12. Set final permissions.
-RUN chown -R ${USER}:${USER} ${HOME} && \
+# 11. Create user directories, config files, and set all permissions.
+RUN mkdir -p /srv/jupyterhub ${HOME}/shared_workspace ${HOME}/notebooks ${HOME}/ros2_ws/src ${HOME}/.config/openbox && \
+    echo '! XTerm settings' > ${HOME}/.Xresources && \
+    echo 'xterm*faceName: DejaVu Sans Mono' >> ${HOME}/.Xresources && \
+    echo 'xterm*faceSize: 14' >> ${HOME}/.Xresources && \
+    echo 'xterm*background: #282a36' >> ${HOME}/.Xresources && \
+    echo 'xterm*foreground: #f8f8f2' >> ${HOME}/.Xresources && \
+    echo 'xterm*scrollBar: true' >> ${HOME}/.Xresources && \
+    echo 'xterm*rightScrollBar: true' >> ${HOME}/.Xresources && \
+    echo 'xterm*saveLines: 2000' >> ${HOME}/.Xresources && \
+    echo '<?xml version="1.0" encoding="UTF-8"?>' > ${HOME}/.config/openbox/menu.xml && \
+    echo '<openbox_menu xmlns="http://openbox.org/3.4/menu">' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '  <menu id="root-menu" label="Desktop">' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '    <item label="Terminal">' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '      <action name="Execute">' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '        <command>xterm</command>' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '      </action>' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '    </item>' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '    <separator/>' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '    <item label="Reconfigure">' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '      <action name="Reconfigure"/>' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '    </item>' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '    <item label="Exit">' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '      <action name="Exit"/>' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '    </item>' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '  </menu>' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '</openbox_menu>' >> ${HOME}/.config/openbox/menu.xml && \
+    chown -R ${USER}:${USER} ${HOME} && \
     chmod 700 /srv/jupyterhub
 
-# 13. Initialize rosdep.
+# 12. Initialize rosdep.
 RUN rosdep init || true && \
     sudo -u ${USER} rosdep update --include-eol-distros || true
 
-# 14. Final container setup.
+# 13. Final container setup.
 USER ${USER}
 RUN echo 'source /opt/ros/jazzy/setup.bash' >> ~/.bashrc
 USER root
