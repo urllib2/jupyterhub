@@ -68,6 +68,10 @@ RUN apt-get update && apt-get install -y nodejs npm && \
     ln -s /usr/local/bin/configurable-http-proxy /usr/bin/configurable-http-proxy && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-opencv libopencv-dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # 10. Create Virtual Environment and Install Jupyter packages + Working Tools.
 RUN python3 -m venv ${VENV_PATH} && \
     ${VENV_PATH}/bin/pip install --upgrade pip && \
@@ -75,7 +79,7 @@ RUN python3 -m venv ${VENV_PATH} && \
         jupyterhub jupyterlab notebook ipywidgets matplotlib numpy scipy \
         xeus-python ruff \
         plotly dash seaborn pandas \
-        opencv-python pillow \
+        pillow \
         jupyterlab-git \
         jupyterlab-code-formatter jupyterlab-lsp python-lsp-server
 
