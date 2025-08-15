@@ -1,4 +1,4 @@
-# Final, STABLE Dockerfile - v5 (Syntax Guaranteed)
+# Final, STABLE Dockerfile - v5 (Syntax Guaranteed) - OpenCV Fixed
 ARG UBUNTU_VERSION=24.04
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -68,11 +68,16 @@ RUN apt-get update && apt-get install -y nodejs npm && \
     ln -s /usr/local/bin/configurable-http-proxy /usr/bin/configurable-http-proxy && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# 10. Install OpenCV dependencies and build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3-opencv libopencv-dev && \
+    python3-opencv libopencv-dev python3-dev build-essential \
+    libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev \
+    libv4l-dev libxvidcore-dev libx264-dev libjpeg-dev libpng-dev \
+    libtiff-dev gfortran openexr libatlas-base-dev pkg-config \
+    libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 10. Create Virtual Environment and Install Jupyter packages + Working Tools.
+# 11. Create Virtual Environment and Install Python packages including OpenCV
 RUN python3 -m venv ${VENV_PATH} && \
     ${VENV_PATH}/bin/pip install --upgrade pip && \
     ${VENV_PATH}/bin/pip install --no-cache-dir \
@@ -81,9 +86,10 @@ RUN python3 -m venv ${VENV_PATH} && \
         plotly dash seaborn pandas \
         pillow \
         jupyterlab-git \
-        jupyterlab-code-formatter jupyterlab-lsp python-lsp-server
+        jupyterlab-code-formatter jupyterlab-lsp python-lsp-server \
+        opencv-python opencv-contrib-python
 
-# 11. Create user directories, config files, and JupyterHub multi-user configuration.
+# 12. Create user directories, config files, and JupyterHub multi-user configuration.
 RUN mkdir -p /srv/jupyterhub ${HOME}/shared_workspace ${HOME}/notebooks ${HOME}/ros2_ws/src ${HOME}/.config/openbox && \
     echo '! XTerm settings' > ${HOME}/.Xresources && \
     echo 'xterm*faceName: DejaVu Sans Mono' >> ${HOME}/.Xresources && \
@@ -196,11 +202,11 @@ EOF
 RUN chown -R ${USER}:${USER} ${HOME} && \
     chmod 700 /srv/jupyterhub
 
-# 12. Initialize rosdep.
+# 13. Initialize rosdep.
 RUN rosdep init || true && \
     sudo -u ${USER} rosdep update --include-eol-distros || true
 
-# 13. Final container setup.
+# 14. Final container setup.
 USER ${USER}
 RUN echo 'source /opt/ros/jazzy/setup.bash' >> ~/.bashrc && \
     echo 'export PATH=${VENV_PATH}/bin:$PATH' >> ~/.bashrc
