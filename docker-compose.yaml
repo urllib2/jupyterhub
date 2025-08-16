@@ -1,14 +1,13 @@
-name: ros2-teaching-vps
-
+name: ros2-teaching-multiuser
 services:
-  ros2-teaching:
+  ros2-teaching-hub:
     build:
       context: .
       dockerfile: docker/Dockerfile
       args:
         - UBUNTU_VERSION=24.04
-    image: ros2-teaching-vps:latest
-    container_name: ros2-teaching-vps
+    image: ros2-teaching-multiuser:latest
+    container_name: ros2-teaching-hub
     hostname: ros2-teaching
     
     ports:
@@ -16,33 +15,44 @@ services:
       - "6080:6080"    # noVNC GUI
     
     volumes:
+      # Shared content accessible to all users
       - type: bind
         source: ./shared_workspace
         target: /home/jovyan/shared_workspace
       - type: bind
         source: ./student_notebooks
-        target: /home/jovyan/notebooks
+        target: /home/jovyan/student_notebooks
+      
+      # JupyterHub configuration
       - type: bind
         source: ./jupyterhub_config.py
         target: /srv/jupyterhub/jupyterhub_config.py
         read_only: true
+      
+      # Updated start script for multi-user
       - type: bind
         source: ./start-services.sh
         target: /usr/local/bin/start-services.sh
         read_only: true
-      - ros2_workspace:/home/jovyan/ros2_ws
       
-    # Optimized resource limits for VPS
+      # Docker socket for DockerSpawner (CRITICAL for multi-user)
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+      
+      # Persistent JupyterHub database and config
+      - jupyterhub_data:/srv/jupyterhub/data
+      
+    # Resource limits for hub container
     deploy:
       resources:
         limits:
-          memory: 2G
-          cpus: '1.5'
+          memory: 1G
+          cpus: '1.0'
         reservations:
-          memory: 512M
-          cpus: '0.5'
+          memory: 256M
+          cpus: '0.25'
     
-    shm_size: 1g
     restart: unless-stopped
     user: root
     
@@ -81,18 +91,37 @@ services:
       XDG_RUNTIME_DIR: "/tmp/runtime-jovyan"
       XDG_SESSION_TYPE: "x11"
       
-      # CRITICAL: JupyterHub networking fix
-      JUPYTERHUB_API_URL: "http://127.0.0.1:8081/hub/api"
+      # JupyterHub hub connectivity
+      JUPYTERHUB_API_URL: "http://ros2-teaching:8081/hub/api"
       JUPYTERHUB_BASE_URL: "/hub/"
+      
+      # OAuth Configuration (set these to your actual values)
+      # For Google OAuth:
+      GOOGLE_OAUTH_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID:-}"
+      GOOGLE_OAUTH_CLIENT_SECRET: "${GOOGLE_OAUTH_CLIENT_SECRET:-}"
+      
+      # For GitHub OAuth:
+      GITHUB_OAUTH_CLIENT_ID: "${GITHUB_OAUTH_CLIENT_ID:-}"
+      GITHUB_OAUTH_CLIENT_SECRET: "${GITHUB_OAUTH_CLIENT_SECRET:-}"
+      
+      # OAuth callback URL for your domain
+      OAUTH_CALLBACK_URL: "https://rosforge.com/hub/oauth-callback"
+      
+      # Docker daemon for spawner
+      DOCKER_HOST: "unix:///var/run/docker.sock"
    
     command: /usr/local/bin/start-services.sh
+    
+    # Networks - important for DockerSpawner communication
+    networks:
+      - ros2-network
     
     # Minimal logging for VPS
     logging:
       driver: "json-file"
       options:
-        max-size: "5m"
-        max-file: "2"
+        max-size: "10m"
+        max-file: "3"
         compress: "true"
     
     # VPS-optimized healthcheck
@@ -105,28 +134,17 @@ services:
       retries: 3
       start_period: 3m
       start_interval: 30s
-      
-    # Security for VPS
-    privileged: false
-    security_opt:
-      - seccomp:unconfined
-    
-    # Minimal tmpfs for VPS
-    tmpfs:
-      - /tmp:rw,exec,nosuid,size=512m,mode=1777
-      - /run:rw,exec,nosuid,size=128m,mode=755
-      - /dev/shm:rw,exec,nosuid,size=512m,mode=1777
 
-    # Network configuration
-    networks:
-      - ros2-network
+  # Note: Using host nginx instead of containerized nginx
 
 # Networks
 networks:
   ros2-network:
     driver: bridge
+    name: ros2-teaching_ros2-network
 
 # Volumes
 volumes:
-  ros2_workspace:
+  jupyterhub_data:
     driver: local
+    name: jupyterhub-data
