@@ -1,93 +1,64 @@
-# Multi-User JupyterHub Configuration with OAuth Authentication
+# Fixed Multi-User JupyterHub Configuration
 import os
 import stat
 from dockerspawner import DockerSpawner
 
-# Basic server configuration for your existing nginx setup
+# Basic server configuration
 c.JupyterHub.ip = "0.0.0.0"
 c.JupyterHub.port = 8000
 c.JupyterHub.bind_url = "http://0.0.0.0:8000"
 
-# IMPORTANT: Configure for Cloudflare + your host nginx setup
+# CRITICAL: Configure for Cloudflare + nginx setup
 c.JupyterHub.base_url = '/'
-# Since Cloudflare handles SSL, JupyterHub sees HTTP from nginx
 c.JupyterHub.trust_downstream_proxy = True
 
 # =============================================================================
-# OAUTH AUTHENTICATION CONFIGURATION
+# AUTHENTICATION CONFIGURATION - CHOOSE ONE
 # =============================================================================
 
-# Choose your OAuth provider by uncommenting the appropriate section:
-
-# --- GOOGLE OAUTH ---
-# Uncomment this section to use Google OAuth
-
-from oauthenticator import GoogleOAuthenticator
-c.JupyterHub.authenticator_class = GoogleOAuthenticator
-
-# Set these environment variables or replace with your actual values
-c.GoogleOAuthenticator.client_id = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', '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')
-c.GoogleOAuthenticator.client_secret = os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET', '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')
-
-# OAuth callback URL - for your domain
-c.GoogleOAuthenticator.oauth_callback_url = os.environ.get('OAUTH_CALLBACK_URL', 'https://rosforge.com/hub/oauth-callback')
-
-# Optional: Restrict to specific Google domains
-# c.GoogleOAuthenticator.hosted_domain = ['yourdomain.com']
-
-# Optional: Whitelist specific users
-c.GoogleOAuthenticator.whitelist = {'sami.turki84@gmail.com', 'bekri.atef@gmail.com'}
-
-
-# --- GITHUB OAUTH ---
-# Uncomment this section to use GitHub OAuth
-
-from oauthenticator import GitHubOAuthenticator
-c.JupyterHub.authenticator_class = GitHubOAuthenticator
-
-# Set these environment variables or replace with your actual values
-c.GitHubOAuthenticator.client_id = os.environ.get('GITHUB_OAUTH_CLIENT_ID', 'Ov23li4bnxSh2SubSeHa')
-c.GitHubOAuthenticator.client_secret = os.environ.get('GITHUB_OAUTH_CLIENT_SECRET', 'c3058dcec82c4bc85137cc42178f659c59a704b0')
-
-# OAuth callback URL - for your domain
-c.GitHubOAuthenticator.oauth_callback_url = os.environ.get('OAUTH_CALLBACK_URL', 'https://rosforge.com/hub/oauth-callback')
-
-# Optional: Restrict to organization members
-# c.GitHubOAuthenticator.github_organization_whitelist = {'your-organization'}
-
-# Optional: Whitelist specific users
-c.GitHubOAuthenticator.whitelist = {'urllib2'}
-
-
-# TEMPORARY: Keep dummy auth for testing - REMOVE IN PRODUCTION
+# FOR TESTING: Use DummyAuthenticator (REMOVE IN PRODUCTION)
 c.JupyterHub.authenticator_class = "jupyterhub.auth.DummyAuthenticator"
 c.DummyAuthenticator.password = "password"
 
-# Admin users - update with actual usernames from OAuth
-c.Authenticator.admin_users = {"admin", "jovyan"}
+# UNCOMMENT FOR GOOGLE OAUTH (and comment out DummyAuthenticator above):
+# from oauthenticator import GoogleOAuthenticator
+# c.JupyterHub.authenticator_class = GoogleOAuthenticator
+# c.GoogleOAuthenticator.client_id = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', 'your-google-client-id')
+# c.GoogleOAuthenticator.client_secret = os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET', 'your-google-client-secret')
+# c.GoogleOAuthenticator.oauth_callback_url = 'https://rosforge.com/hub/oauth-callback'
+# c.GoogleOAuthenticator.whitelist = {'sami.turki84@gmail.com', 'bekri.atef@gmail.com'}
 
-# Enable user creation for new OAuth users
+# UNCOMMENT FOR GITHUB OAUTH (and comment out DummyAuthenticator above):
+# from oauthenticator import GitHubOAuthenticator  
+# c.JupyterHub.authenticator_class = GitHubOAuthenticator
+# c.GitHubOAuthenticator.client_id = os.environ.get('GITHUB_OAUTH_CLIENT_ID', 'your-github-client-id')
+# c.GitHubOAuthenticator.client_secret = os.environ.get('GITHUB_OAUTH_CLIENT_SECRET', 'your-github-client-secret')
+# c.GitHubOAuthenticator.oauth_callback_url = 'https://rosforge.com/hub/oauth-callback'
+# c.GitHubOAuthenticator.whitelist = {'urllib2'}
+
+# Admin users
+c.Authenticator.admin_users = {"admin", "jovyan"}
 c.Authenticator.auto_login = False
 c.Authenticator.create_system_users = False
 
 # =============================================================================
-# DOCKER SPAWNER CONFIGURATION FOR MULTI-USER
+# DOCKER SPAWNER CONFIGURATION
 # =============================================================================
 
 c.JupyterHub.spawner_class = DockerSpawner
 
 # Use the same image as your main container
-c.DockerSpawner.image = 'ros2-teaching-vps:latest'
+c.DockerSpawner.image = 'ros2-teaching-multiuser:latest'
 
 # Remove containers when they stop
 c.DockerSpawner.remove = True
 
-# Network configuration - use the same network as JupyterHub
+# Network configuration
 c.DockerSpawner.network_name = 'ros2-teaching_ros2-network'
 
-# Hub connectivity
+# Hub connectivity - FIXED
 c.JupyterHub.hub_bind_url = "http://0.0.0.0:8081"
-c.JupyterHub.hub_connect_url = "http://ros2-teaching:8081"
+c.JupyterHub.hub_connect_url = "http://ros2-teaching-hub:8081"  # Use container name
 
 # Container configuration
 c.DockerSpawner.notebook_dir = '/home/{username}'
@@ -154,7 +125,6 @@ def pre_spawn_hook(spawner):
         'working_dir': f'/home/{username}',
     }
     
-    # Add initialization command to create user and setup environment
     spawner.extra_host_config = {
         'init': True,
     }
@@ -199,8 +169,6 @@ EOF
     
     chown {username}:{username} /home/{username}/.jupyter/jupyter_lab_config.py
     """
-    
-    print(f"PRE-SPAWN: Configured spawn command for {username}")
 
 c.DockerSpawner.pre_spawn_hook = pre_spawn_hook
 
@@ -263,4 +231,4 @@ c.JupyterHub.shutdown_on_logout = False
 c.DockerSpawner.poll_interval = 30
 c.DockerSpawner.consecutive_failure_limit = 5
 
-print("Multi-User JupyterHub configuration with OAuth support loaded")
+print("Fixed Multi-User JupyterHub configuration loaded")
