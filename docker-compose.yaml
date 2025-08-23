@@ -1,150 +1,95 @@
-name: ros2-teaching-multiuser
+# Multi-User JupyterHub with Docker Compose v2 - FIXED VERSION
 services:
   ros2-teaching-hub:
     build:
       context: .
       dockerfile: docker/Dockerfile
-      args:
-        - UBUNTU_VERSION=24.04
     image: ros2-teaching-multiuser:latest
     container_name: ros2-teaching-hub
-    hostname: ros2-teaching
-    
-    ports:
-      - "8000:8000"    # JupyterHub
-      - "6080:6080"    # noVNC GUI
-    
+    hostname: ros2-teaching-hub
+
+    # CRITICAL: Use HUB startup script for main container
+    command: /usr/local/bin/start-hub.sh
+
+    # Only expose internally - nginx will handle external access
+    expose:
+      - "8000"
+      - "8081"
+      - "6080"
+
     volumes:
-      # Shared content accessible to all users
-      - type: bind
-        source: ./shared_workspace
-        target: /home/jovyan/shared_workspace
+      # Read-only shared course materials for all students
       - type: bind
         source: ./student_notebooks
-        target: /home/jovyan/student_notebooks
-      
-      # JupyterHub configuration
+        target: /srv/shared_workspace
+        read_only: true
+      # Directory for individual student workspaces
+      - type: bind
+        source: ./student_workspaces
+        target: /srv/student_workspaces
+      # Hub configuration
       - type: bind
         source: ./jupyterhub_config.py
         target: /srv/jupyterhub/jupyterhub_config.py
         read_only: true
-      
-      # Updated start script for multi-user
-      - type: bind
-        source: ./start-services.sh
-        target: /usr/local/bin/start-services.sh
-        read_only: true
-      
-      # Docker socket for DockerSpawner (CRITICAL for multi-user)
-      - type: bind
-        source: /var/run/docker.sock
-        target: /var/run/docker.sock
-      
-      # Persistent JupyterHub database and config
+      # CRITICAL: Docker socket for spawning USER containers
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Hub persistent data - writable volume
       - jupyterhub_data:/srv/jupyterhub/data
-      
-    # Resource limits for hub container
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1.0'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
-    
+      # FIXED: Writable temp directory for the hub
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 1G
+
     restart: unless-stopped
-    user: root
-    
+
     environment:
-      # Display settings
-      DISPLAY: ":1"
-      VNC_RESOLUTION: "1920x1080"
-      
-      # ESSENTIAL CPU-only rendering for VPS
-      LIBGL_ALWAYS_SOFTWARE: "1"
-      MESA_GL_VERSION_OVERRIDE: "3.3"
-      MESA_GLSL_VERSION_OVERRIDE: "330"
-      GALLIUM_DRIVER: "llvmpipe"
-      LP_NUM_THREADS: "2"
-      __GL_SYNC_TO_VBLANK: "0"
-      MESA_GLTHREAD: "false"
-      
-      # ROS2 settings
-      ROS_DISTRO: "jazzy"
-      ROS_DOMAIN_ID: "42"
-      
-      # User settings
-      USER: "jovyan"
-      HOME: "/home/jovyan"
-      VENV_PATH: "/opt/venv"
-      
-      # Gazebo VPS optimization
-      GZ_VERSION: "harmonic"
-      OGRE_RTT_MODE: "Copy"
-      
-      # GUI settings for VPS
-      QT_X11_NO_MITSHM: "1"
-      QT_GRAPHICSSYSTEM: "native"
-      
-      # Runtime settings
-      XDG_RUNTIME_DIR: "/tmp/runtime-jovyan"
-      XDG_SESSION_TYPE: "x11"
-      
-      # JupyterHub hub connectivity
-      JUPYTERHUB_API_URL: "http://ros2-teaching:8081/hub/api"
-      JUPYTERHUB_BASE_URL: "/hub/"
-      
-      # OAuth Configuration (set these to your actual values)
-      # For Google OAuth:
-      GOOGLE_OAUTH_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID:-}"
-      GOOGLE_OAUTH_CLIENT_SECRET: "${GOOGLE_OAUTH_CLIENT_SECRET:-}"
-      
-      # For GitHub OAuth:
-      GITHUB_OAUTH_CLIENT_ID: "${GITHUB_OAUTH_CLIENT_ID:-}"
-      GITHUB_OAUTH_CLIENT_SECRET: "${GITHUB_OAUTH_CLIENT_SECRET:-}"
-      
-      # OAuth callback URL for your domain
-      OAUTH_CALLBACK_URL: "https://rosforge.com/hub/oauth-callback"
-      
-      # Docker daemon for spawner
+      JUPYTERHUB_CRYPT_KEY: "${JUPYTERHUB_CRYPT_KEY}"
+      GITHUB_CLIENT_ID: "${GITHUB_CLIENT_ID}"
+      GITHUB_CLIENT_SECRET: "${GITHUB_CLIENT_SECRET}"
+      OAUTH_CALLBACK_URL: "https://rosforge.com/hub/oauth_callback"
       DOCKER_HOST: "unix:///var/run/docker.sock"
-   
-    command: /usr/local/bin/start-services.sh
-    
-    # Networks - important for DockerSpawner communication
+      # FIXED: Add proper environment variables
+      PYTHONPATH: "/opt/venv/lib/python3.12/site-packages"
+      PATH: "/opt/venv/bin:/usr/local/bin:/usr/bin:/bin"
+    # CRITICAL: Privileged access needed for Docker-in-Docker (spawning user containers)
+    privileged: true
+
+    # FIXED: Add health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/hub/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
     networks:
       - ros2-network
-    
-    # Minimal logging for VPS
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        compress: "true"
-    
-    # VPS-optimized healthcheck
-    healthcheck:
-      test: 
-        - "CMD-SHELL"
-        - "curl -f http://localhost:8000/hub/health || exit 1"
-      interval: 60s
-      timeout: 30s
-      retries: 3
-      start_period: 3m
-      start_interval: 30s
-
-  # Note: Using host nginx instead of containerized nginx
-
-# Networks
+  # NGINX PROXY SERVICE
+  nginx:
+    image: nginx:alpine
+    container_name: ros2-teaching-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      ros2-teaching-hub:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ros2-network
+# Networks for multi-user communication
 networks:
   ros2-network:
     driver: bridge
-    name: ros2-teaching_ros2-network
-
-# Volumes
+    driver_opts:
+      com.docker.network.bridge.name: ros2-br0
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
+# Persistent storage for hub data and user workspaces
 volumes:
   jupyterhub_data:
     driver: local
-    name: jupyterhub-data

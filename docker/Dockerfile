@@ -1,4 +1,4 @@
-# Multi-User JupyterHub Dockerfile - v6 (Fixed for DockerSpawner)
+# Multi-User JupyterHub Dockerfile - v8 (EDITED)
 ARG UBUNTU_VERSION=24.04
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -22,6 +22,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-desktop python3-colcon-common-extensions python3-rosdep && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Add this after ROS2 installation to fix library loading
+RUN echo "/opt/ros/jazzy/lib" >> /etc/ld.so.conf.d/ros2-jazzy.conf && \
+    echo "/opt/ros/jazzy/lib/x86_64-linux-gnu" >> /etc/ld.so.conf.d/ros2-jazzy.conf && \
+    ldconfig
+
+# Set library path environment variable
+ENV LD_LIBRARY_PATH="/opt/ros/jazzy/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
+ENV PYTHONPATH="/opt/ros/jazzy/local/lib/python3.12/site-packages:/opt/ros/jazzy/lib/python3.12/site-packages:${PYTHONPATH}"
+
 # 3. Install Gazebo
 RUN apt-get update && apt-get install -y --no-install-recommends gz-harmonic && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -39,7 +48,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 5. Install GUI essentials and development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     xvfb x11vnc websockify x11-utils xterm openbox obconf menu x11-xserver-utils \
-    tree htop tmux screen net-tools && \
+    tree htop tmux screen net-tools dbus-x11 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 6. Install graphics and UI libraries
@@ -135,7 +144,7 @@ exclude = [
     "__pypackages__", "_build", "buck-out", "build", "dist", "node_modules", 
     "venv", "install", "log", "build"
 ]
-target-version = "py310"
+target-version = "py312"
 
 [tool.ruff.format]
 quote-style = "single"
@@ -150,30 +159,19 @@ classmethod-decorators = ["classmethod"]
 staticmethod-decorators = ["staticmethod"]
 EOF
 
-# 15. CRITICAL: Fix permissions and create required directories
+# 15. FIXED: Fix permissions and create required directories
 RUN chown -R ${USER}:${USER} ${HOME} && \
     chmod 755 ${HOME} && \
     chmod 700 /srv/jupyterhub && \
-    mkdir -p /tmp && chmod 1777 /tmp
+    mkdir -p /tmp && chmod 1777 /tmp && \
+    mkdir -p /run/user/1000 && chown ${USER}:${USER} /run/user/1000 && chmod 700 /run/user/1000
 
-# 16. CRITICAL: Create a JupyterLab starter script for spawned containers
-RUN cat > /usr/local/bin/start-singleuser.sh << 'EOF'
-#!/bin/bash
-set -e
-
-# Source ROS2 environment
-source /opt/ros/jazzy/setup.bash
-
-# Ensure user directories exist
-mkdir -p ${HOME}/.jupyter
-mkdir -p ${HOME}/.local/share/jupyter
-mkdir -p ${HOME}/workspace
-
-# Start JupyterLab
-exec ${VENV_PATH}/bin/jupyterhub-singleuser "$@"
-EOF
-
-RUN chmod +x /usr/local/bin/start-singleuser.sh
+# 16. CRITICAL: Add SEPARATE scripts for hub and single-user - use COPY instead of inline heredoc
+# Copy the improved start-singleuser and start-hub scripts from build context
+COPY docker/start-singleuser.sh /usr/local/bin/start-singleuser.sh
+COPY docker/start-hub.sh /usr/local/bin/start-hub.sh
+RUN chmod +x /usr/local/bin/start-singleuser.sh && \
+    chmod +x /usr/local/bin/start-hub.sh
 
 # 17. Initialize rosdep
 RUN rosdep init || true && \
@@ -196,11 +194,15 @@ c.ServerApp.allow_origin = '*'
 c.ServerApp.allow_remote_access = True
 c.ServerApp.open_browser = False
 c.LabApp.default_url = '/lab'
+c.ServerApp.port = 8888
+c.ServerApp.port_retries = 0
 EOF
 
+# 21. Switch back to root and finalize
 USER root
 WORKDIR /home/${USER}
-EXPOSE 8000 6080
+EXPOSE 8000 8888 6080
 
-# CRITICAL: Set the default command for spawned containers
+# CRITICAL: Default command for spawned containers (single-user mode)
 CMD ["/usr/local/bin/start-singleuser.sh"]
+
