@@ -11,6 +11,7 @@ services:
     # CRITICAL: Use HUB startup script for main container
     command: /usr/local/bin/start-hub.sh
 
+
     # Only expose internally - nginx will handle external access
     expose:
       - "8000"

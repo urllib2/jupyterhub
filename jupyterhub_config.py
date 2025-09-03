@@ -1,4 +1,4 @@
-# Multi-User JupyterHub Configuration for Docker Compose v2 - WITH DESKTOP ACCESS
+# Multi-User JupyterHub Configuration for Docker Compose v2 - WITH DESKTOP ACCESS (FIXED)
 from dockerspawner import DockerSpawner
 from oauthenticator import GitHubOAuthenticator
 import os
@@ -45,7 +45,12 @@ c.DockerSpawner.extra_host_config = {
     'port_bindings': {
         6080: None,  # Let Docker assign a random host port for noVNC
         8888: None   # Jupyter
-    }
+    },
+    'auto_remove': True,
+    'restart_policy': {'Name': 'no'},
+    'shm_size': '512m',
+    'init': True,
+    'cap_add': ['SYS_NICE'],
 }
 
 # Command for EACH spawned user container
@@ -69,7 +74,7 @@ c.DockerSpawner.environment = {
     'PYTHONPATH': '/opt/venv/lib/python3.12/site-packages',
 }
 
-# --- UPDATED: Volume Mounts for proper student workspace isolation ---
+# --- Volume Mounts for proper student workspace isolation ---
 c.DockerSpawner.volumes = {
     # Individual user workspace (writable, persistent)
     'jupyterhub-user-{username}': '/home/jovyan/work',
@@ -93,20 +98,6 @@ c.DockerSpawner.extra_create_kwargs = {
     'working_dir': '/home/jovyan',
 }
 
-# Container host config - Updated for GUI access
-c.DockerSpawner.extra_host_config = {
-    'auto_remove': True,
-    'restart_policy': {'Name': 'no'},
-    'shm_size': '512m',
-    'init': True,
-    'cap_add': ['SYS_NICE'],
-    # Expose ports for GUI access
-    'port_bindings': {
-        6080: None,  # noVNC - let Docker assign random port
-        8888: None   # JupyterLab
-    }
-}
-
 # --- Hub Data Persistence ---
 c.JupyterHub.cookie_secret_file = "/srv/jupyterhub/data/jupyterhub_cookie_secret"
 c.JupyterHub.db_url = "sqlite:////srv/jupyterhub/data/jupyterhub.sqlite"
@@ -118,7 +109,7 @@ c.JupyterHub.trusted_downstream_ips = ['127.0.0.1', '10.0.0.0/8', '172.16.0.0/12
 # ConfigurableHTTPProxy auth token (read from env); fallback to a random token if not set.
 c.ConfigurableHTTPProxy.auth_token = os.environ.get('JUPYTERHUB_CRYPT_KEY', os.urandom(32).hex())
 
-# --- Custom services for desktop access ---
+# --- FIXED Desktop Proxy Service ---
 c.JupyterHub.services = [
     {
         'name': 'desktop-proxy',
@@ -127,36 +118,95 @@ c.JupyterHub.services = [
             'python3', '-c', '''
 import tornado.web
 import tornado.ioloop
-from tornado.httpclient import AsyncHTTPClient
 import docker
 import json
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class DesktopHandler(tornado.web.RequestHandler):
     async def get(self, username):
-        """Proxy desktop access to user's container"""
-        # Get user's container info
-        client = docker.from_env()
+        """Proxy desktop access to user container"""
+        logger.info(f"Desktop access requested for user: {username}")
+        
         try:
-            container = client.containers.get(f"jupyter-{username}-")
-            # Get the mapped port for noVNC (6080)
-            ports = container.attrs['NetworkSettings']['Ports']
-            vnc_port = ports['6080/tcp'][0]['HostPort'] if '6080/tcp' in ports else None
+            client = docker.from_env()
+            all_containers = client.containers.list()
+            logger.info(f"All running containers: {[c.name for c in all_containers]}")
             
-            if vnc_port:
-                # Redirect to the container's noVNC
-                self.redirect(f"http://localhost:{vnc_port}")
+            # Try the correct naming patterns based on your config
+            container_patterns = [
+                f"jupyter-{username}-",      # With trailing dash (your original)
+                f"jupyter-{username}",       # Without trailing dash
+                f"jupyter-{username}-default", # With default servername
+            ]
+            
+            container = None
+            for pattern in container_patterns:
+                # Try exact match first
+                try:
+                    container = client.containers.get(pattern)
+                    logger.info(f"Found exact match: {container.name}")
+                    break
+                except docker.errors.NotFound:
+                    pass
+                
+                # Try containers that start with the pattern
+                for c in all_containers:
+                    if c.name.startswith(pattern.rstrip("-")):
+                        container = c
+                        logger.info(f"Found pattern match: {container.name}")
+                        break
+                
+                if container:
+                    break
+            
+            if not container:
+                container_list = [c.name for c in all_containers]
+                msg = f"No container found for {username}. Available: {container_list}"
+                logger.error(msg)
+                self.write(f"<h1>Container Not Found</h1><p>{msg}</p>")
+                return
+            
+            # Check container status
+            if container.status != "running":
+                logger.warning(f"Container {container.name} status: {container.status}")
+                self.write(f"<h1>Container Not Running</h1><p>Container {container.name} is not running (status: {container.status})</p>")
+                return
+            
+            # Get container's internal IP from the Docker network
+            container.reload()
+            network_name = "ros2-teaching_ros2-network"
+            
+            if network_name in container.attrs["NetworkSettings"]["Networks"]:
+                container_ip = container.attrs["NetworkSettings"]["Networks"][network_name]["IPAddress"]
+                logger.info(f"Redirecting to noVNC at container IP: {container_ip}")
+                # FIXED: Redirect using container's internal IP
+                self.redirect(f"https://rosforge.com/vnc/{container_ip}/")
             else:
-                self.write("Desktop not available. Please start your server first.")
-        except docker.errors.NotFound:
-            self.write("Container not found. Please start your server first.")
+                logger.error(f"Container {container.name} not found in network {network_name}")
+                self.write(f"<h1>Network Error</h1><p>Container not found in expected network</p>")
+                
         except Exception as e:
-            self.write(f"Error: {str(e)}")
+            logger.error(f"Error for user {username}: {e}")
+            self.write(f"<h1>Error</h1><p>Error accessing desktop for {username}: {str(e)}</p>")
 
+class HealthHandler(tornado.web.RequestHandler):
+    def get(self):
+        """Health check endpoint for JupyterHub"""
+        self.write({"status": "healthy", "service": "desktop-proxy"})
+
+# FIXED: Add routes for the service path structure
 app = tornado.web.Application([
-    (r"/desktop/([^/]+)", DesktopHandler),
+    (r"/", HealthHandler),                           # Health check at service root
+    (r"/desktop/([^/]+)", DesktopHandler),          # Desktop access
+    (r"/services/desktop-proxy/", HealthHandler),    # JupyterHub service health check
+    (r"/services/desktop-proxy/desktop/([^/]+)", DesktopHandler), # Full service path
 ])
 
 if __name__ == "__main__":
+    logger.info("Starting desktop-proxy on port 9999")
     app.listen(9999)
     tornado.ioloop.IOLoop.current().start()
 '''
@@ -179,7 +229,6 @@ c.Authenticator.auto_login = True
 c.Spawner.start_timeout = 600    # time to wait for spawn to start
 c.Spawner.http_timeout = 600     # wait for the single-user server to appear
 c.DockerSpawner.start_timeout = 600
-c.Spawner.http_timeout = 600
 
 # Hub logging level
 c.JupyterHub.log_level = 'INFO'
@@ -194,7 +243,7 @@ c.JupyterHub.active_server_limit = 20
 # Container naming
 c.DockerSpawner.name_template = 'jupyter-{username}-{servername}'
 
-# --- UPDATED: Hooks for user workspace management ---
+# --- Hooks for user workspace management ---
 def pre_spawn_hook(spawner):
     """Hook to run before spawning user containers"""
     spawner.log.info(f"Pre-spawn hook: Starting container for user {spawner.user.name}")
