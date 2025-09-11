@@ -22,6 +22,18 @@ log "Container: $(hostname)"
 log "User: $USER"
 log "Desktop Port: $DESKTOP_PORT"
 
+# --- 0. Setup User Workspace (NEW) ---
+log "Setting up user workspace..."
+sudo mkdir -p /home/jovyan/work
+sudo chown jovyan:jovyan /home/jovyan/work
+sudo chmod 755 /home/jovyan/work
+log "✅ User workspace created at /home/jovyan/work"
+
+# --- NEW: Clean up unwanted folders ---
+log "Cleaning up unwanted folders..."
+sudo rm -rf /home/jovyan/notebooks /home/jovyan/ros2_ws /home/jovyan/shared_workspace /home/jovyan/work 2>/dev/null || true
+log "✅ Unwanted folders removed"
+
 # --- 1. Setup Runtime Environment ---
 log "Setting up runtime directories..."
 sudo mkdir -p /run/user/1000 /tmp/.X11-unix
@@ -105,7 +117,6 @@ for i in {1..5}; do
     sleep 2
     if [ $i -eq 5 ]; then
         log "❌ noVNC failed to start on port $DESKTOP_PORT"
-        # Don't exit, continue with JupyterLab
     fi
 done
 
@@ -113,14 +124,6 @@ done
 log "Setting up ROS2 environment..."
 source /opt/ros/jazzy/setup.bash
 export ROS_DOMAIN_ID=42
-
-# Create ROS2 workspace if it doesn't exist
-if [ ! -d "/home/jovyan/ros2_ws/src" ]; then
-    log "Creating ROS2 workspace..."
-    sudo -u jovyan mkdir -p /home/jovyan/ros2_ws/src
-    cd /home/jovyan/ros2_ws
-    sudo -u jovyan bash -c "source /opt/ros/jazzy/setup.bash && colcon build --symlink-install" || true
-fi
 
 # --- 8. Cleanup Handler ---
 cleanup() {

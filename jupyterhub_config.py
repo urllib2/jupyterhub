@@ -1,294 +1,249 @@
-# Multi-User JupyterHub Configuration for Docker Compose v2 - WITH DESKTOP ACCESS (FIXED)
+#!/usr/bin/env python3
+# Multi-User JupyterHub Configuration – OPTIMIZED FOR 4GB VPS
 from dockerspawner import DockerSpawner
 from oauthenticator import GitHubOAuthenticator
 import os
+import sys
 
-# --- Basic server configuration ---
-# Bind the public-facing hub on all interfaces inside the hub container
+# =============================================================================
+# 1. BASIC SERVER CONFIGURATION
+# =============================================================================
 c.JupyterHub.bind_url = 'http://0.0.0.0:8000'
 c.JupyterHub.base_url = '/'
-# Hub internal API bind address (what hub process listens on)
 c.JupyterHub.hub_bind_url = 'http://0.0.0.0:8081'
+c.JupyterHub.port = 8000
+c.JupyterHub.hub_port = 8081
 
-# --- GitHub OAuth Configuration ---
+# =============================================================================
+# 2. GITHUB OAUTH AUTHENTICATION
+# =============================================================================
 c.JupyterHub.authenticator_class = GitHubOAuthenticator
-c.GitHubOAuthenticator.oauth_callback_url = 'https://rosforge.com/hub/oauth_callback'
+c.GitHubOAuthenticator.oauth_callback_url = 'https://app.rosforge.com/hub/oauth_callback'
 c.GitHubOAuthenticator.client_id = os.environ.get('GITHUB_CLIENT_ID')
 c.GitHubOAuthenticator.client_secret = os.environ.get('GITHUB_CLIENT_SECRET')
 c.GitHubOAuthenticator.enable_auth_state = True
+c.GitHubOAuthenticator.scope = ['read:user', 'user:email']
+c.GitHubOAuthenticator.username_claim = 'login'
 
-# Allow authentication from anyone with a GitHub account
+# Admin users configuration
 c.Authenticator.admin_users = {"urllib2"}
+c.Authenticator.allow_all = True  # Allow any GitHub user
+c.Authenticator.auto_login = False
 
-# --- Docker Spawner Configuration for MULTI-USER JupyterHub ---
+# =============================================================================
+# 3. DOCKER SPAWNER CONFIGURATION
+# =============================================================================
 c.JupyterHub.spawner_class = DockerSpawner
-
-# Image and network for spawned user containers (match actual network name)
 c.DockerSpawner.image = 'ros2-teaching-multiuser:latest'
 c.DockerSpawner.network_name = 'ros2-teaching_ros2-network'
 
-# Hub connection settings: how spawned containers should reach the Hub
-# Use full URL form (supported) instead of hub_connect_port (not recognized).
+# Hub connection configuration
 c.JupyterHub.hub_connect_url = 'http://ros2-teaching-hub:8081'
 c.DockerSpawner.hub_ip_connect = 'ros2-teaching-hub'
 c.DockerSpawner.hub_connect_url = 'http://ros2-teaching-hub:8081'
-
-# Ensure DockerSpawner uses internal docker networking
 c.DockerSpawner.use_internal_ip = True
-
-# Each user container networking - IMPORTANT: Expose desktop port
 c.DockerSpawner.host_ip = '0.0.0.0'
 c.DockerSpawner.port = 8888
 
-# CRITICAL: Expose desktop port for each user container
+# Container naming and removal
+c.DockerSpawner.name_template = 'jupyter-{username}'
+c.DockerSpawner.remove = True
+c.DockerSpawner.pull_policy = 'ifnotpresent'
+
+# =============================================================================
+# 4. OPTIMIZED RESOURCE LIMITS FOR 4GB VPS
+# =============================================================================
+# FIXED: Proper Docker resource limits
+c.DockerSpawner.mem_limit = '1G'        # Memory limit per container
+c.DockerSpawner.cpu_limit = 1.0         # CPU limit (1 core)
+c.DockerSpawner.cpu_guarantee = 0.1     # Minimum CPU guarantee
+
+# FIXED: Docker host configuration
 c.DockerSpawner.extra_host_config = {
     'port_bindings': {
-        6080: None,  # Let Docker assign a random host port for noVNC
-        8888: None   # Jupyter
+        6080: None,    # noVNC port
+        8888: None,    # Jupyter port
     },
     'auto_remove': True,
     'restart_policy': {'Name': 'no'},
-    'shm_size': '512m',
+    'shm_size': '256m',           # Reduced shared memory for GUI apps
     'init': True,
     'cap_add': ['SYS_NICE'],
+    # 'memory_swappiness': 10,      # Minimize swap usage
+    'oom_kill_disable': False,    # Allow OOM killer
+    # CRITICAL: Proper Docker API memory format
+    'mem_limit': '1g',            # 1GB memory limit
+    'memswap_limit': '1g',        # No additional swap
+    'cpu_period': 100000,         # CPU period (microseconds)
+    'cpu_quota': 100000,          # CPU quota (1 CPU core)
 }
 
-# Command for EACH spawned user container
+# =============================================================================
+# 5. CONTAINER STARTUP CONFIGURATION
+# =============================================================================
 c.DockerSpawner.cmd = ['/usr/local/bin/start-singleuser.sh']
+c.DockerSpawner.start_timeout = 300     # 5 minutes for container start
+c.DockerSpawner.http_timeout = 120      # HTTP timeout
 
-# Environment for EACH user container
+# =============================================================================
+# 6. ENVIRONMENT VARIABLES
+# =============================================================================
 c.DockerSpawner.environment = {
+    # Jupyter configuration
     'JUPYTER_ENABLE_LAB': '1',
+    'JUPYTER_CONFIG_DIR': '/tmp/.jupyter',
+    'JUPYTER_RUNTIME_DIR': '/tmp/.local/share/jupyter/runtime',
+    'JUPYTER_DATA_DIR': '/home/jovyan/.local/share/jupyter',
+    
+    # User and permissions
     'GRANT_SUDO': 'yes',
     'CHOWN_HOME': 'yes',
     'USER': 'jovyan',
     'HOME': '/home/jovyan',
     'SHELL': '/bin/bash',
-    # ROS2 Environment
+    
+    # ROS2 environment
+    'ROS_DISTRO': 'jazzy',
     'ROS_DOMAIN_ID': '42',
+    'ROS_LOCALHOST_ONLY': '0',
+    'AMENT_PREFIX_PATH': '/opt/ros/jazzy',
+    'COLCON_PREFIX_PATH': '/opt/ros/jazzy',
+    'LD_LIBRARY_PATH': '/opt/ros/jazzy/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu',
+    
+    # Display and graphics
     'DISPLAY': ':1',
     'LIBGL_ALWAYS_SOFTWARE': '1',
+    'QT_X11_NO_MITSHM': '1',
+    'XAUTHORITY': '/tmp/.Xauth',
+    
     # Python environment
     'VENV_PATH': '/opt/venv',
-    'PATH': '/opt/venv/bin:/usr/local/bin:/usr/bin:/bin',
-    'PYTHONPATH': '/opt/venv/lib/python3.12/site-packages',
+    'PATH': '/opt/venv/bin:/opt/ros/jazzy/bin:/usr/local/bin:/usr/bin:/bin',
+    'PYTHONPATH': '/opt/venv/lib/python3.12/site-packages:/opt/ros/jazzy/local/lib/python3.12/site-packages:/opt/ros/jazzy/lib/python3.12/site-packages',
+    
+    # Memory optimizations
+    'MALLOC_TRIM_THRESHOLD_': '100000',
+    'MALLOC_MMAP_THRESHOLD_': '131072',
+    'PYTHONHASHSEED': '0',
 }
 
-# --- Volume Mounts for proper student workspace isolation ---
+# =============================================================================
+# 7. VOLUME MOUNTS AND PERSISTENCE
+# =============================================================================
 c.DockerSpawner.volumes = {
-    # Individual user workspace (writable, persistent)
-    'jupyterhub-user-{username}': '/home/jovyan/work',
-    # Shared read-only course materials
-    '/srv/shared_workspace': { "bind": '/home/jovyan/shared_materials', "mode": 'ro' },
+    # shared course material (read-only)
+    '/home/sami/ros2-teaching/shared': {
+        'bind': '/home/jovyan/course_materials',
+        'mode': 'ro'
+    },
+    # personal workspace (read-write)
+    '/home/sami/ros2-teaching/users/{username}': {
+        'bind': '/home/jovyan/my_workspace',
+        'mode': 'rw'
+    },
 }
 
-# Debugging / lifecycle settings
-c.DockerSpawner.remove = True
+# Create user directories on spawn
+c.DockerSpawner.pre_spawn_hook = lambda spawner: os.makedirs(
+    f'/home/sami/ros2-teaching/users/{spawner.user.name}', 
+    exist_ok=True
+)
 
-# Use local image, don't pull (you build it locally)
-c.DockerSpawner.pull_policy = 'never'
+# =============================================================================
+# 8. PROXY CONFIGURATION (FIXED)
+# =============================================================================
+c.ConfigurableHTTPProxy.api_url = 'http://0.0.0.0:8001'
+c.ConfigurableHTTPProxy.should_start = True
+c.ConfigurableHTTPProxy.auth_token = os.environ.get('JUPYTERHUB_CRYPT_KEY', '')
+# REMOVED: No memory options for proxy (this was causing the error)
 
-# Resource limits per user
-c.DockerSpawner.mem_limit = '2G'  # 2GB RAM per user
-c.DockerSpawner.cpu_limit = 1.0   # 1 CPU core per user
+# =============================================================================
+# 9. JUPYTERHUB OPTIMIZATIONS FOR 4GB VPS
+# =============================================================================
+c.JupyterHub.active_server_limit = 3        # Max 3 concurrent users
+c.JupyterHub.concurrent_spawn_limit = 1     # Spawn containers sequentially
+c.Spawner.start_timeout = 300               # 5 minutes spawn timeout
+c.JupyterHub.init_spawners_timeout = 10     # Quick spawner init
 
-# Container user configuration
-c.DockerSpawner.extra_create_kwargs = {
-    'user': 'jovyan',
-    'working_dir': '/home/jovyan',
-}
-
-# --- Hub Data Persistence ---
-c.JupyterHub.cookie_secret_file = "/srv/jupyterhub/data/jupyterhub_cookie_secret"
-c.JupyterHub.db_url = "sqlite:////srv/jupyterhub/data/jupyterhub.sqlite"
-
-# --- Proxy configuration ---
-# Trusted downstream IPs (adjust if you add other proxies)
-c.JupyterHub.trusted_downstream_ips = ['127.0.0.1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
-
-# ConfigurableHTTPProxy auth token (read from env); fallback to a random token if not set.
-c.ConfigurableHTTPProxy.auth_token = os.environ.get('JUPYTERHUB_CRYPT_KEY', os.urandom(32).hex())
-
-# --- FIXED Desktop Proxy Service ---
-c.JupyterHub.services = [
+# =============================================================================
+# 10. IDLE CULLING SERVICE (Resource Management)
+# =============================================================================
+c.JupyterHub.load_roles = [
     {
-        'name': 'desktop-proxy',
-        'url': 'http://127.0.0.1:9999',
-        'command': [
-            'python3', '-c', '''
-import tornado.web
-import tornado.ioloop
-import docker
-import json
-import logging
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-class DesktopHandler(tornado.web.RequestHandler):
-    async def get(self, username):
-        """Proxy desktop access to user container"""
-        logger.info(f"Desktop access requested for user: {username}")
-        
-        try:
-            client = docker.from_env()
-            all_containers = client.containers.list()
-            logger.info(f"All running containers: {[c.name for c in all_containers]}")
-            
-            # Try the correct naming patterns based on your config
-            container_patterns = [
-                f"jupyter-{username}-",      # With trailing dash (your original)
-                f"jupyter-{username}",       # Without trailing dash
-                f"jupyter-{username}-default", # With default servername
-            ]
-            
-            container = None
-            for pattern in container_patterns:
-                # Try exact match first
-                try:
-                    container = client.containers.get(pattern)
-                    logger.info(f"Found exact match: {container.name}")
-                    break
-                except docker.errors.NotFound:
-                    pass
-                
-                # Try containers that start with the pattern
-                for c in all_containers:
-                    if c.name.startswith(pattern.rstrip("-")):
-                        container = c
-                        logger.info(f"Found pattern match: {container.name}")
-                        break
-                
-                if container:
-                    break
-            
-            if not container:
-                container_list = [c.name for c in all_containers]
-                msg = f"No container found for {username}. Available: {container_list}"
-                logger.error(msg)
-                self.write(f"<h1>Container Not Found</h1><p>{msg}</p>")
-                return
-            
-            # Check container status
-            if container.status != "running":
-                logger.warning(f"Container {container.name} status: {container.status}")
-                self.write(f"<h1>Container Not Running</h1><p>Container {container.name} is not running (status: {container.status})</p>")
-                return
-            
-            # Get container's internal IP from the Docker network
-            container.reload()
-            network_name = "ros2-teaching_ros2-network"
-            
-            if network_name in container.attrs["NetworkSettings"]["Networks"]:
-                container_ip = container.attrs["NetworkSettings"]["Networks"][network_name]["IPAddress"]
-                logger.info(f"Redirecting to noVNC at container IP: {container_ip}")
-                # FIXED: Redirect using container's internal IP
-                self.redirect(f"https://rosforge.com/vnc/{container_ip}/")
-            else:
-                logger.error(f"Container {container.name} not found in network {network_name}")
-                self.write(f"<h1>Network Error</h1><p>Container not found in expected network</p>")
-                
-        except Exception as e:
-            logger.error(f"Error for user {username}: {e}")
-            self.write(f"<h1>Error</h1><p>Error accessing desktop for {username}: {str(e)}</p>")
-
-class HealthHandler(tornado.web.RequestHandler):
-    def get(self):
-        """Health check endpoint for JupyterHub"""
-        self.write({"status": "healthy", "service": "desktop-proxy"})
-
-# FIXED: Add routes for the service path structure
-app = tornado.web.Application([
-    (r"/", HealthHandler),                           # Health check at service root
-    (r"/desktop/([^/]+)", DesktopHandler),          # Desktop access
-    (r"/services/desktop-proxy/", HealthHandler),    # JupyterHub service health check
-    (r"/services/desktop-proxy/desktop/([^/]+)", DesktopHandler), # Full service path
-])
-
-if __name__ == "__main__":
-    logger.info("Starting desktop-proxy on port 9999")
-    app.listen(9999)
-    tornado.ioloop.IOLoop.current().start()
-'''
-        ],
-        'oauth_no_confirm': True,
+        "name": "idle-culler",
+        "services": ["idle-culler"],
     }
 ]
 
-# --- Reverse proxy / headers ---
-c.JupyterHub.tornado_settings = {
-    'headers': {
-        'Content-Security-Policy': "frame-ancestors 'self' https://rosforge.com"
+c.JupyterHub.services = [
+    {
+        "name": "idle-culler",
+        "command": [
+            sys.executable,
+            "-m", "jupyterhub_idle_culler",
+            "--timeout=3600",      # Cull after 1 hour of inactivity
+            "--cull-every=300",    # Check every 5 minutes
+            "--concurrency=1",     # Cull one container at a time
+            "--max-age=28800",     # Maximum age: 8 hours
+        ],
+        "admin": True,
     }
+]
+
+# =============================================================================
+# 11. DATABASE AND PERSISTENCE
+# =============================================================================
+c.JupyterHub.db_url = 'sqlite:///srv/jupyterhub/jupyterhub.sqlite'
+c.JupyterHub.cookie_secret_file = '/srv/jupyterhub/cookie_secret'
+c.JupyterHub.cleanup_servers = True
+
+# =============================================================================
+# 12. SECURITY CONFIGURATION
+# =============================================================================
+c.JupyterHub.cookie_max_age_days = 7
+c.JupyterHub.reset_db = False
+c.Authenticator.refresh_pre_spawn = True
+c.Authenticator.auth_refresh_age = 3600     # Refresh auth every hour
+
+# =============================================================================
+# 13. LOGGING AND DEBUGGING
+# =============================================================================
+c.JupyterHub.log_level = 'INFO'
+c.DockerSpawner.debug = False               # Disable to save resources
+c.Application.log_level = 'INFO'
+c.ConfigurableHTTPProxy.debug = False
+
+# =============================================================================
+# 14. CUSTOM SPAWNER OPTIONS (Advanced)
+# =============================================================================
+c.DockerSpawner.extra_create_kwargs = {
+    'working_dir': '/home/jovyan',
+    'user': '1000:1000',
 }
 
-c.JupyterHub.trust_user_provided_tokens = True
-c.Authenticator.auto_login = True
+# =============================================================================
+# 15. SHUTDOWN AND CLEANUP
+# =============================================================================
+c.JupyterHub.shutdown_on_logout = False
+c.JupyterHub.redirect_to_server = False
+c.Spawner.disable_user_config = True        # Prevent user config override
 
-# Timeouts (increased for debugging / slow container starts)
-c.Spawner.start_timeout = 600    # time to wait for spawn to start
-c.Spawner.http_timeout = 600     # wait for the single-user server to appear
-c.DockerSpawner.start_timeout = 600
+# =============================================================================
+# 16. CUSTOM ERROR PAGES AND TEMPLATES
+# =============================================================================
+c.JupyterHub.template_paths = ['/srv/jupyterhub/templates']
+c.JupyterHub.extra_log_file = '/srv/jupyterhub/jupyterhub.log'
 
-# Hub logging level
-c.JupyterHub.log_level = 'INFO'
+# =============================================================================
+# 17. PERFORMANCE MONITORING
+# =============================================================================
+c.JupyterHub.statsd_host = ''  # Disable statsd for now
+c.JupyterHub.statsd_port = 8125
+c.JupyterHub.statsd_prefix = 'jupyterhub'
 
-# --- Debug settings ---
-c.DockerSpawner.debug = True
-
-# Concurrency limits
-c.JupyterHub.concurrent_spawn_limit = 10
-c.JupyterHub.active_server_limit = 20
-
-# Container naming
-c.DockerSpawner.name_template = 'jupyter-{username}-{servername}'
-
-# --- Hooks for user workspace management ---
-def pre_spawn_hook(spawner):
-    """Hook to run before spawning user containers"""
-    spawner.log.info(f"Pre-spawn hook: Starting container for user {spawner.user.name}")
-
-    # Create individual student workspace directory if needed
-    username = spawner.user.name
-    user_workspace_dir = f'/srv/student_workspaces/{username}'
-    
-    try:
-        import os
-        os.makedirs(user_workspace_dir, exist_ok=True)
-        os.chmod(user_workspace_dir, 0o755)
-        spawner.log.info(f"Created/verified workspace directory for user {username}")
-    except Exception as e:
-        spawner.log.warning(f"Could not create workspace directory: {e}")
-
-    # Ensure the image exists and the network exists
-    try:
-        import docker
-        client = docker.from_env()
-
-        # Check if image exists
-        try:
-            image = client.images.get(spawner.image)
-            spawner.log.info(f"Using image: {image.tags}")
-        except docker.errors.ImageNotFound:
-            spawner.log.error(f"Image {spawner.image} not found!")
-            raise Exception(f"Docker image {spawner.image} not found")
-
-        # Check network exists
-        try:
-            network = client.networks.get(spawner.network_name)
-            spawner.log.info(f"Using network: {network.name}")
-        except docker.errors.NotFound:
-            spawner.log.error(f"Network {spawner.network_name} not found!")
-            raise Exception(f"Docker network {spawner.network_name} not found")
-
-    except Exception as e:
-        spawner.log.error(f"Pre-spawn hook error: {e}")
-        raise
-
-c.Spawner.pre_spawn_hook = pre_spawn_hook
-
-def post_stop_hook(spawner):
-    """Hook to run after stopping user containers"""
-    spawner.log.info(f"Post-stop hook: Cleaning up for user {spawner.user.name}")
-
-c.Spawner.post_stop_hook = post_stop_hook
+# =============================================================================
+# 18. CUSTOM STUDENT MANAGEMENT (if using custom authenticator)
+# =============================================================================
+# Uncomment if you want to use custom student management
+# c.JupyterHub.authenticator_class = 'student_management.CustomAuthenticator'
+# c.CustomAuthenticator.student_list_file = '/srv/jupyterhub/students.txt'

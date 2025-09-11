@@ -97,6 +97,7 @@ RUN python3 -m venv ${VENV_PATH} && \
     ${VENV_PATH}/bin/pip install --no-cache-dir \
         jupyterhub==4.0.* jupyterlab notebook ipywidgets matplotlib numpy scipy \
         dockerspawner==12.1.* oauthenticator==16.0.* \
+        jupyterhub-idle-culler \
         xeus-python ruff \
         plotly dash seaborn pandas \
         pillow \
@@ -164,14 +165,17 @@ RUN chown -R ${USER}:${USER} ${HOME} && \
     chmod 755 ${HOME} && \
     chmod 700 /srv/jupyterhub && \
     mkdir -p /tmp && chmod 1777 /tmp && \
-    mkdir -p /run/user/1000 && chown ${USER}:${USER} /run/user/1000 && chmod 700 /run/user/1000
+    mkdir -p /run/user/1000 && chown ${USER}:${USER} /run/user/1000 && chmod 700 /run/user/1000 && \
+    mkdir -p /home/jovyan/srv/jupyterhub && chown ${USER}:${USER} /home/jovyan/srv/jupyterhub
 
 # 16. CRITICAL: Add SEPARATE scripts for hub and single-user - use COPY instead of inline heredoc
 # Copy the improved start-singleuser and start-hub scripts from build context
 COPY docker/start-singleuser.sh /usr/local/bin/start-singleuser.sh
 COPY docker/start-hub.sh /usr/local/bin/start-hub.sh
+COPY student_management.py /srv/jupyterhub/student_management.py
 RUN chmod +x /usr/local/bin/start-singleuser.sh && \
-    chmod +x /usr/local/bin/start-hub.sh
+    chmod +x /usr/local/bin/start-hub.sh && \
+    chmod +r /srv/jupyterhub/student_management.py
 
 # 17. Initialize rosdep
 RUN rosdep init || true && \
@@ -205,4 +209,3 @@ EXPOSE 8000 8888 6080
 
 # CRITICAL: Default command for spawned containers (single-user mode)
 CMD ["/usr/local/bin/start-singleuser.sh"]
-

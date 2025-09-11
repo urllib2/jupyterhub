@@ -7,17 +7,13 @@ services:
     image: ros2-teaching-multiuser:latest
     container_name: ros2-teaching-hub
     hostname: ros2-teaching-hub
-
     # CRITICAL: Use HUB startup script for main container
     command: /usr/local/bin/start-hub.sh
-
-
     # Only expose internally - nginx will handle external access
     expose:
       - "8000"
       - "8081"
       - "6080"
-
     volumes:
       # Read-only shared course materials for all students
       - type: bind
@@ -42,9 +38,7 @@ services:
         target: /tmp
         tmpfs:
           size: 1G
-
     restart: unless-stopped
-
     environment:
       JUPYTERHUB_CRYPT_KEY: "${JUPYTERHUB_CRYPT_KEY}"
       GITHUB_CLIENT_ID: "${GITHUB_CLIENT_ID}"
@@ -56,15 +50,13 @@ services:
       PATH: "/opt/venv/bin:/usr/local/bin:/usr/bin:/bin"
     # CRITICAL: Privileged access needed for Docker-in-Docker (spawning user containers)
     privileged: true
-
-    # FIXED: Add health check
+    # FIXED: Updated health check to use correct port and endpoint
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/hub/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/hub/health", "||", "curl", "-f", "http://localhost:8081/hub/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
-
     networks:
       - ros2-network
   # NGINX PROXY SERVICE
