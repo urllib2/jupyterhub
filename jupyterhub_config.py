@@ -50,13 +50,23 @@ c.DockerSpawner.name_template = 'jupyter-{username}'
 c.DockerSpawner.remove = True
 c.DockerSpawner.pull_policy = 'ifnotpresent'
 
+# VNC PROXY SUPPORT - SIMPLE ADDITION
+c.DockerSpawner.cmd = [
+    '/usr/local/bin/start-singleuser.sh',
+    '--ServerApp.jpserver_extensions=jupyter_server_proxy=True',
+    '--ServerApp.allow_origin=*',
+    '--ServerApp.disable_check_xsrf=True'
+]
+
+# Set default user landing page
+c.Spawner.default_url = '/lab'
+
 # =============================================================================
-# 4. OPTIMIZED RESOURCE LIMITS FOR 4GB VPS
+# 4. OPTIMIZED RESOURCE LIMITS FOR 2 STUDENTS
 # =============================================================================
-# FIXED: Proper Docker resource limits
-c.DockerSpawner.mem_limit = '1G'        # Memory limit per container
-c.DockerSpawner.cpu_limit = 1.0         # CPU limit (1 core)
-c.DockerSpawner.cpu_guarantee = 0.1     # Minimum CPU guarantee
+c.DockerSpawner.mem_limit = '1.8G'        # 1.8G per student (3.6G total)
+c.DockerSpawner.cpu_limit = 1.0           # 1 core per student
+c.DockerSpawner.cpu_guarantee = 0.3       # Higher minimum guarantee
 
 # FIXED: Docker host configuration
 c.DockerSpawner.extra_host_config = {
@@ -66,14 +76,13 @@ c.DockerSpawner.extra_host_config = {
     },
     'auto_remove': True,
     'restart_policy': {'Name': 'no'},
-    'shm_size': '256m',           # Reduced shared memory for GUI apps
+    'shm_size': '512m',           # 512MB shared memory per student
     'init': True,
     'cap_add': ['SYS_NICE'],
-    # 'memory_swappiness': 10,      # Minimize swap usage
     'oom_kill_disable': False,    # Allow OOM killer
     # CRITICAL: Proper Docker API memory format
-    'mem_limit': '1g',            # 1GB memory limit
-    'memswap_limit': '1g',        # No additional swap
+    'mem_limit': '1.8g',          # 1.8GB memory limit
+    'memswap_limit': '1.8g',      # No additional swap
     'cpu_period': 100000,         # CPU period (microseconds)
     'cpu_quota': 100000,          # CPU quota (1 CPU core)
 }
@@ -81,7 +90,6 @@ c.DockerSpawner.extra_host_config = {
 # =============================================================================
 # 5. CONTAINER STARTUP CONFIGURATION
 # =============================================================================
-c.DockerSpawner.cmd = ['/usr/local/bin/start-singleuser.sh']
 c.DockerSpawner.start_timeout = 300     # 5 minutes for container start
 c.DockerSpawner.http_timeout = 120      # HTTP timeout
 
@@ -94,6 +102,10 @@ c.DockerSpawner.environment = {
     'JUPYTER_CONFIG_DIR': '/tmp/.jupyter',
     'JUPYTER_RUNTIME_DIR': '/tmp/.local/share/jupyter/runtime',
     'JUPYTER_DATA_DIR': '/home/jovyan/.local/share/jupyter',
+    
+    # VNC proxy support - ADDED
+    'JUPYTER_SERVER_PROXY_VNC_COMMAND': '/bin/true',
+    'JUPYTER_SERVER_PROXY_VNC_PORT': '6080',
     
     # User and permissions
     'GRANT_SUDO': 'yes',
@@ -155,13 +167,13 @@ c.DockerSpawner.pre_spawn_hook = lambda spawner: os.makedirs(
 c.ConfigurableHTTPProxy.api_url = 'http://0.0.0.0:8001'
 c.ConfigurableHTTPProxy.should_start = True
 c.ConfigurableHTTPProxy.auth_token = os.environ.get('JUPYTERHUB_CRYPT_KEY', '')
-# REMOVED: No memory options for proxy (this was causing the error)
+c.ConfigurableHTTPProxy.debug = False
 
 # =============================================================================
-# 9. JUPYTERHUB OPTIMIZATIONS FOR 4GB VPS
+# 9. JUPYTERHUB OPTIMIZATIONS FOR 2 STUDENTS
 # =============================================================================
-c.JupyterHub.active_server_limit = 3        # Max 3 concurrent users
-c.JupyterHub.concurrent_spawn_limit = 1     # Spawn containers sequentially
+c.JupyterHub.active_server_limit = 2        # 2 concurrent students
+c.JupyterHub.concurrent_spawn_limit = 1     # Sequential spawning to avoid resource conflicts
 c.Spawner.start_timeout = 300               # 5 minutes spawn timeout
 c.JupyterHub.init_spawners_timeout = 10     # Quick spawner init
 
@@ -181,10 +193,10 @@ c.JupyterHub.services = [
         "command": [
             sys.executable,
             "-m", "jupyterhub_idle_culler",
-            "--timeout=3600",      # Cull after 1 hour of inactivity
-            "--cull-every=300",    # Check every 5 minutes
+            "--timeout=1800",      # Cull after 30 minutes of inactivity (reduced)
+            "--cull-every=120",    # Check every 2 minutes (more frequent)
             "--concurrency=1",     # Cull one container at a time
-            "--max-age=28800",     # Maximum age: 8 hours
+            "--max-age=14400",     # Maximum age: 4 hours (reduced)
         ],
         "admin": True,
     }

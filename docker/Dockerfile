@@ -1,4 +1,4 @@
-# Multi-User JupyterHub Dockerfile - v8 (EDITED)
+# Multi-User JupyterHub Dockerfile - v9 (with xdotool + fixcaps)
 ARG UBUNTU_VERSION=24.04
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -12,10 +12,10 @@ ENV VENV_PATH=/opt/venv
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl gnupg2 lsb-release wget git sudo ca-certificates openssl vim nano \
     python3-pip python3-venv ubuntu-keyring && \
-    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2.list && \
-    wget -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg https://packages.osrfoundation.org/gazebo.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" > /etc/apt/sources.list.d/gazebo-stable.list
+    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key  -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu  $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2.list && \
+    wget -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg https://packages.osrfoundation.org/gazebo.gpg  && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable  $(lsb_release -cs) main" > /etc/apt/sources.list.d/gazebo-stable.list
 
 # 2. Install ROS2 packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -51,6 +51,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tree htop tmux screen net-tools dbus-x11 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# 5-bis. Terminal emulator for the desktop
+RUN apt-get update && apt-get install -y --no-install-recommends terminator && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# 5-c. Keyboard utilities (fix stuck Caps Lock / Shift in noVNC)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    x11-xkb-utils xdotool && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    echo '#!/bin/bash\nxdotool key Caps_Lock' > /usr/local/bin/fixcaps && \
+    chmod +x /usr/local/bin/fixcaps
+
 # 6. Install graphics and UI libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
     mesa-utils libgl1-mesa-dri libglu1-mesa libglx-mesa0 \
@@ -58,8 +69,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 7. Install noVNC
-RUN git clone --depth 1 https://github.com/novnc/noVNC.git /opt/novnc && \
-    git clone --depth 1 https://github.com/novnc/websockify /opt/novnc/utils/websockify && \
+RUN git clone --depth 1 https://github.com/novnc/noVNC.git  /opt/novnc && \
+    git clone --depth 1 https://github.com/novnc/websockify  /opt/novnc/utils/websockify && \
     chmod +x /opt/novnc/utils/novnc_proxy && \
     ln -s /opt/novnc/vnc.html /opt/novnc/index.html
 
@@ -98,6 +109,7 @@ RUN python3 -m venv ${VENV_PATH} && \
         jupyterhub==4.0.* jupyterlab notebook ipywidgets matplotlib numpy scipy \
         dockerspawner==12.1.* oauthenticator==16.0.* \
         jupyterhub-idle-culler \
+        jupyter-server-proxy \
         xeus-python ruff \
         plotly dash seaborn pandas \
         pillow \
@@ -121,6 +133,11 @@ RUN mkdir -p /srv/jupyterhub ${HOME}/shared_workspace ${HOME}/notebooks ${HOME}/
     echo '    <item label="Terminal">' >> ${HOME}/.config/openbox/menu.xml && \
     echo '      <action name="Execute">' >> ${HOME}/.config/openbox/menu.xml && \
     echo '        <command>xterm</command>' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '      </action>' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '    </item>' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '    <item label="Terminator">' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '      <action name="Execute">' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '        <command>terminator</command>' >> ${HOME}/.config/openbox/menu.xml && \
     echo '      </action>' >> ${HOME}/.config/openbox/menu.xml && \
     echo '    </item>' >> ${HOME}/.config/openbox/menu.xml && \
     echo '    <separator/>' >> ${HOME}/.config/openbox/menu.xml && \
@@ -169,7 +186,6 @@ RUN chown -R ${USER}:${USER} ${HOME} && \
     mkdir -p /home/jovyan/srv/jupyterhub && chown ${USER}:${USER} /home/jovyan/srv/jupyterhub
 
 # 16. CRITICAL: Add SEPARATE scripts for hub and single-user - use COPY instead of inline heredoc
-# Copy the improved start-singleuser and start-hub scripts from build context
 COPY docker/start-singleuser.sh /usr/local/bin/start-singleuser.sh
 COPY docker/start-hub.sh /usr/local/bin/start-hub.sh
 COPY student_management.py /srv/jupyterhub/student_management.py
@@ -209,3 +225,4 @@ EXPOSE 8000 8888 6080
 
 # CRITICAL: Default command for spawned containers (single-user mode)
 CMD ["/usr/local/bin/start-singleuser.sh"]
+
