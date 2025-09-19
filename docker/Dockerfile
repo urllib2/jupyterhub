@@ -1,4 +1,4 @@
-# Multi-User JupyterHub Dockerfile - v9 (with xdotool + fixcaps)
+# Multi-User JupyterHub Dockerfile - v10 (with xdotool + fixcaps)
 ARG UBUNTU_VERSION=24.04
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -8,14 +8,19 @@ ENV USER=jovyan
 ENV HOME=/home/${USER}
 ENV VENV_PATH=/opt/venv
 
+# ---- refresh Ubuntu archive key (base image keys are stale) ----
+RUN apt-get update || true && \
+    apt-get install -y --no-install-recommends ca-certificates wget curl && \
+    wget -qO- 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C' | tee /etc/apt/trusted.gpg.d/ubuntu-archive.asc > /dev/null
+
 # 1. Basic system setup and ROS/Gazebo repositories
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl gnupg2 lsb-release wget git sudo ca-certificates openssl vim nano \
     python3-pip python3-venv ubuntu-keyring && \
-    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key  -o /usr/share/keyrings/ros-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu  $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2.list && \
-    wget -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg https://packages.osrfoundation.org/gazebo.gpg  && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable  $(lsb_release -cs) main" > /etc/apt/sources.list.d/gazebo-stable.list
+    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key   -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu   $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2.list && \
+    wget -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg https://packages.osrfoundation.org/gazebo.gpg   && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable   $(lsb_release -cs) main" > /etc/apt/sources.list.d/gazebo-stable.list
 
 # 2. Install ROS2 packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -34,6 +39,9 @@ ENV PYTHONPATH="/opt/ros/jazzy/local/lib/python3.12/site-packages:/opt/ros/jazzy
 # 3. Install Gazebo
 RUN apt-get update && apt-get install -y --no-install-recommends gz-harmonic && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# ---- re-refresh Ubuntu key before ROS/Gazebo block (keys expire again) ----
+RUN wget -qO- 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C' | tee /etc/apt/trusted.gpg.d/ubuntu-archive.asc > /dev/null
 
 # 4. Install ROS-Gazebo bridge and additional ROS2 development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -68,9 +76,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libqt5widgets5 libqt5gui5 libqt5core5a && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# 🔥 Force software rendering for clean turtlesim on first launch
+ENV LIBGL_ALWAYS_SOFTWARE=1
+
 # 7. Install noVNC
-RUN git clone --depth 1 https://github.com/novnc/noVNC.git  /opt/novnc && \
-    git clone --depth 1 https://github.com/novnc/websockify  /opt/novnc/utils/websockify && \
+RUN git clone --depth 1 https://github.com/novnc/noVNC.git   /opt/novnc && \
+    git clone --depth 1 https://github.com/novnc/websockify   /opt/novnc/utils/websockify && \
     chmod +x /opt/novnc/utils/novnc_proxy && \
     ln -s /opt/novnc/vnc.html /opt/novnc/index.html
 
@@ -128,7 +139,7 @@ RUN mkdir -p /srv/jupyterhub ${HOME}/shared_workspace ${HOME}/notebooks ${HOME}/
     echo 'xterm*rightScrollBar: true' >> ${HOME}/.Xresources && \
     echo 'xterm*saveLines: 2000' >> ${HOME}/.Xresources && \
     echo '<?xml version="1.0" encoding="UTF-8"?>' > ${HOME}/.config/openbox/menu.xml && \
-    echo '<openbox_menu xmlns="http://openbox.org/3.4/menu">' >> ${HOME}/.config/openbox/menu.xml && \
+    echo '<openbox_menu xmlns="http://openbox.org/3.4/menu  ">' >> ${HOME}/.config/openbox/menu.xml && \
     echo '  <menu id="root-menu" label="Desktop">' >> ${HOME}/.config/openbox/menu.xml && \
     echo '    <item label="Terminal">' >> ${HOME}/.config/openbox/menu.xml && \
     echo '      <action name="Execute">' >> ${HOME}/.config/openbox/menu.xml && \
@@ -165,8 +176,8 @@ exclude = [
 target-version = "py312"
 
 [tool.ruff.format]
-quote-style = "single"
-indent-style = "space"
+quote-style = 'single'
+indent-style = 'space'
 
 [tool.ruff.lint.isort]
 known-first-party = ["rclpy", "rclcpp"]
@@ -204,10 +215,9 @@ RUN usermod -aG docker ${USER} || true
 USER ${USER}
 RUN echo 'source /opt/ros/jazzy/setup.bash' >> ~/.bashrc && \
     echo 'export PATH=${VENV_PATH}/bin:$PATH' >> ~/.bashrc && \
-    echo 'export ROS_DOMAIN_ID=42' >> ~/.bashrc
-
-# 20. Create user-specific JupyterLab config
-RUN mkdir -p ~/.jupyter && \
+    # 🔥 permanent fix: remove any leftover ROS_DOMAIN_ID exports
+    sed -i '/ROS_DOMAIN_ID/d' ~/.bashrc && \
+    mkdir -p ~/.jupyter && \
     cat > ~/.jupyter/jupyter_lab_config.py << 'EOF'
 c.ServerApp.ip = '0.0.0.0'
 c.ServerApp.allow_origin = '*'
@@ -225,4 +235,3 @@ EXPOSE 8000 8888 6080
 
 # CRITICAL: Default command for spawned containers (single-user mode)
 CMD ["/usr/local/bin/start-singleuser.sh"]
-

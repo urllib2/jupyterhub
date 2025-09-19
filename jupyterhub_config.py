@@ -94,7 +94,7 @@ c.DockerSpawner.start_timeout = 300     # 5 minutes for container start
 c.DockerSpawner.http_timeout = 120      # HTTP timeout
 
 # =============================================================================
-# 6. ENVIRONMENT VARIABLES
+# 6. ENVIRONMENT VARIABLES - REVERTED TO WORKING STATE
 # =============================================================================
 c.DockerSpawner.environment = {
     # Jupyter configuration
@@ -116,17 +116,22 @@ c.DockerSpawner.environment = {
     
     # ROS2 environment
     'ROS_DISTRO': 'jazzy',
-    'ROS_DOMAIN_ID': '42',
+    # 'ROS_DOMAIN_ID': '42',
     'ROS_LOCALHOST_ONLY': '0',
     'AMENT_PREFIX_PATH': '/opt/ros/jazzy',
     'COLCON_PREFIX_PATH': '/opt/ros/jazzy',
     'LD_LIBRARY_PATH': '/opt/ros/jazzy/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu',
     
-    # Display and graphics
+    # Display and graphics - REVERTED TO SIMPLE WORKING STATE
     'DISPLAY': ':1',
-    'LIBGL_ALWAYS_SOFTWARE': '1',
     'QT_X11_NO_MITSHM': '1',
     'XAUTHORITY': '/tmp/.Xauth',
+    # REMOVED all problematic graphics overrides
+
+    'QT_QPA_PLATFORM': 'xcb',
+    'QT_QPA_PLATFORM_PLUGIN_PATH': '/usr/lib/x86_64-linux-gnu/qt5/plugins',
+    'QT_PLUGIN_PATH': '/usr/lib/x86_64-linux-gnu/qt5/plugins',
+    'QT_QUICK_CONTROLS_STYLE': 'Default',
     
     # Python environment
     'VENV_PATH': '/opt/venv',
