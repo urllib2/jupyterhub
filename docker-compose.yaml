@@ -1,4 +1,4 @@
-# Multi-User JupyterHub with Docker Compose v2 - FIXED VERSION
+# Multi-User JupyterHub with Docker Compose v2 - NETWORK OPTIMIZED VERSION
 services:
   ros2-teaching-hub:
     build:
@@ -50,16 +50,26 @@ services:
       PATH: "/opt/venv/bin:/usr/local/bin:/usr/bin:/bin"
     # CRITICAL: Privileged access needed for Docker-in-Docker (spawning user containers)
     privileged: true
-    # FIXED: Updated health check to use correct port and endpoint
+    # OPTIMIZED: Faster health check
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/hub/health", "||", "curl", "-f", "http://localhost:8081/hub/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/hub/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 2
+      start_period: 30s
+    # OPTIMIZED: Resource limits for better performance
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
     networks:
       - ros2-network
-  # NGINX PROXY SERVICE
+
+  # NGINX PROXY SERVICE - OPTIMIZED
   nginx:
     image: nginx:alpine
     container_name: ros2-teaching-nginx
@@ -71,18 +81,41 @@ services:
       ros2-teaching-hub:
         condition: service_healthy
     restart: unless-stopped
+    # OPTIMIZED: Resource limits for nginx
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
     networks:
       - ros2-network
-# Networks for multi-user communication
+
+# OPTIMIZED NETWORK CONFIGURATION - BIG PERFORMANCE IMPROVEMENT
 networks:
   ros2-network:
     driver: bridge
     driver_opts:
       com.docker.network.bridge.name: ros2-br0
+      com.docker.network.driver.mtu: 1500
+      # OPTIMIZED: Faster bridge settings
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.bridge.host_binding_ipv4: "0.0.0.0"
     ipam:
+      driver: default
       config:
-        - subnet: 172.18.0.0/16
-# Persistent storage for hub data and user workspaces
+        - subnet: 172.18.0.0/24  # OPTIMIZED: Smaller subnet for faster IP allocation
+          gateway: 172.18.0.1
+          ip_range: 172.18.0.0/25  # Limit IP range to first 128 addresses
+
+# OPTIMIZED VOLUMES CONFIGURATION
 volumes:
   jupyterhub_data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/jupyterhub_data

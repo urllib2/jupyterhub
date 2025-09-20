@@ -2,3 +2,4 @@
 *.bak
 *~
 
+data/jupyterhub_data/

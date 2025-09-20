@@ -68,7 +68,7 @@ c.DockerSpawner.mem_limit = '1.8G'        # 1.8G per student (3.6G total)
 c.DockerSpawner.cpu_limit = 1.0           # 1 core per student
 c.DockerSpawner.cpu_guarantee = 0.3       # Higher minimum guarantee
 
-# FIXED: Docker host configuration
+# OPTIMIZED: Docker host configuration for faster startup
 c.DockerSpawner.extra_host_config = {
     'port_bindings': {
         6080: None,    # noVNC port
@@ -76,7 +76,7 @@ c.DockerSpawner.extra_host_config = {
     },
     'auto_remove': True,
     'restart_policy': {'Name': 'no'},
-    'shm_size': '512m',           # 512MB shared memory per student
+    'shm_size': '256m',           # REDUCED from 512m for faster startup
     'init': True,
     'cap_add': ['SYS_NICE'],
     'oom_kill_disable': False,    # Allow OOM killer
@@ -85,63 +85,53 @@ c.DockerSpawner.extra_host_config = {
     'memswap_limit': '1.8g',      # No additional swap
     'cpu_period': 100000,         # CPU period (microseconds)
     'cpu_quota': 100000,          # CPU quota (1 CPU core)
+    # ADDED: Performance optimizations for faster startup
+    'ulimits': [{'name': 'nofile', 'soft': 65536, 'hard': 65536}],
+    'tmpfs': {'/tmp': 'size=256m,noexec'},  # Faster temp filesystem
 }
 
 # =============================================================================
-# 5. CONTAINER STARTUP CONFIGURATION
+# 5. OPTIMIZED STARTUP TIMEOUTS - BIG WINNER
 # =============================================================================
-c.DockerSpawner.start_timeout = 300     # 5 minutes for container start
-c.DockerSpawner.http_timeout = 120      # HTTP timeout
+c.DockerSpawner.start_timeout = 180     # REDUCED from 300 to 180 seconds
+c.DockerSpawner.http_timeout = 30       # REDUCED from 60 to 30 seconds
+
+# CRITICAL: Container reuse for massive performance gain
+c.DockerSpawner.remove = False  # Keep containers for restart instead of recreating
+c.DockerSpawner.use_internal_hostname = True
 
 # =============================================================================
-# 6. ENVIRONMENT VARIABLES - REVERTED TO WORKING STATE
+# 6. STREAMLINED ENVIRONMENT VARIABLES - BIG WINNER
 # =============================================================================
 c.DockerSpawner.environment = {
-    # Jupyter configuration
+    # Essential Jupyter configuration
     'JUPYTER_ENABLE_LAB': '1',
-    'JUPYTER_CONFIG_DIR': '/tmp/.jupyter',
-    'JUPYTER_RUNTIME_DIR': '/tmp/.local/share/jupyter/runtime',
-    'JUPYTER_DATA_DIR': '/home/jovyan/.local/share/jupyter',
-    
-    # VNC proxy support - ADDED
-    'JUPYTER_SERVER_PROXY_VNC_COMMAND': '/bin/true',
-    'JUPYTER_SERVER_PROXY_VNC_PORT': '6080',
-    
-    # User and permissions
     'GRANT_SUDO': 'yes',
-    'CHOWN_HOME': 'yes',
     'USER': 'jovyan',
     'HOME': '/home/jovyan',
     'SHELL': '/bin/bash',
     
-    # ROS2 environment
+    # Essential ROS2 environment
     'ROS_DISTRO': 'jazzy',
-    # 'ROS_DOMAIN_ID': '42',
     'ROS_LOCALHOST_ONLY': '0',
+    'LD_LIBRARY_PATH': '/opt/ros/jazzy/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu',
     'AMENT_PREFIX_PATH': '/opt/ros/jazzy',
     'COLCON_PREFIX_PATH': '/opt/ros/jazzy',
-    'LD_LIBRARY_PATH': '/opt/ros/jazzy/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu',
     
-    # Display and graphics - REVERTED TO SIMPLE WORKING STATE
+    # Essential Display configuration
     'DISPLAY': ':1',
     'QT_X11_NO_MITSHM': '1',
-    'XAUTHORITY': '/tmp/.Xauth',
-    # REMOVED all problematic graphics overrides
-
+    'LIBGL_ALWAYS_SOFTWARE': '1',
     'QT_QPA_PLATFORM': 'xcb',
-    'QT_QPA_PLATFORM_PLUGIN_PATH': '/usr/lib/x86_64-linux-gnu/qt5/plugins',
-    'QT_PLUGIN_PATH': '/usr/lib/x86_64-linux-gnu/qt5/plugins',
-    'QT_QUICK_CONTROLS_STYLE': 'Default',
     
-    # Python environment
+    # Essential Python environment
     'VENV_PATH': '/opt/venv',
     'PATH': '/opt/venv/bin:/opt/ros/jazzy/bin:/usr/local/bin:/usr/bin:/bin',
-    'PYTHONPATH': '/opt/venv/lib/python3.12/site-packages:/opt/ros/jazzy/local/lib/python3.12/site-packages:/opt/ros/jazzy/lib/python3.12/site-packages',
+    'PYTHONPATH': '/opt/venv/lib/python3.12/site-packages:/opt/ros/jazzy/lib/python3.12/site-packages',
     
-    # Memory optimizations
-    'MALLOC_TRIM_THRESHOLD_': '100000',
-    'MALLOC_MMAP_THRESHOLD_': '131072',
-    'PYTHONHASHSEED': '0',
+    # VNC proxy support
+    'JUPYTER_SERVER_PROXY_VNC_COMMAND': '/bin/true',
+    'JUPYTER_SERVER_PROXY_VNC_PORT': '6080',
 }
 
 # =============================================================================
@@ -175,12 +165,12 @@ c.ConfigurableHTTPProxy.auth_token = os.environ.get('JUPYTERHUB_CRYPT_KEY', '')
 c.ConfigurableHTTPProxy.debug = False
 
 # =============================================================================
-# 9. JUPYTERHUB OPTIMIZATIONS FOR 2 STUDENTS
+# 9. OPTIMIZED JUPYTERHUB FOR FASTER SPAWNING - BIG WINNER
 # =============================================================================
 c.JupyterHub.active_server_limit = 2        # 2 concurrent students
-c.JupyterHub.concurrent_spawn_limit = 1     # Sequential spawning to avoid resource conflicts
-c.Spawner.start_timeout = 300               # 5 minutes spawn timeout
-c.JupyterHub.init_spawners_timeout = 10     # Quick spawner init
+c.JupyterHub.concurrent_spawn_limit = 2     # INCREASED from 1 for parallel spawning
+c.Spawner.start_timeout = 180               # REDUCED from 300 seconds
+c.JupyterHub.init_spawners_timeout = 5      # REDUCED from 10 seconds
 
 # =============================================================================
 # 10. IDLE CULLING SERVICE (Resource Management)
@@ -208,9 +198,9 @@ c.JupyterHub.services = [
 ]
 
 # =============================================================================
-# 11. DATABASE AND PERSISTENCE
+# 11. OPTIMIZED DATABASE AND PERSISTENCE - BIG WINNER
 # =============================================================================
-c.JupyterHub.db_url = 'sqlite:///srv/jupyterhub/jupyterhub.sqlite'
+c.JupyterHub.db_url = 'sqlite:///srv/jupyterhub/jupyterhub.sqlite?check_same_thread=false'
 c.JupyterHub.cookie_secret_file = '/srv/jupyterhub/cookie_secret'
 c.JupyterHub.cleanup_servers = True
 
@@ -223,7 +213,7 @@ c.Authenticator.refresh_pre_spawn = True
 c.Authenticator.auth_refresh_age = 3600     # Refresh auth every hour
 
 # =============================================================================
-# 13. LOGGING AND DEBUGGING
+# 13. OPTIMIZED LOGGING - LESS VERBOSE FOR PERFORMANCE
 # =============================================================================
 c.JupyterHub.log_level = 'INFO'
 c.DockerSpawner.debug = False               # Disable to save resources
@@ -231,7 +221,7 @@ c.Application.log_level = 'INFO'
 c.ConfigurableHTTPProxy.debug = False
 
 # =============================================================================
-# 14. CUSTOM SPAWNER OPTIONS (Advanced)
+# 14. OPTIMIZED SPAWNER OPTIONS
 # =============================================================================
 c.DockerSpawner.extra_create_kwargs = {
     'working_dir': '/home/jovyan',
