@@ -1,4 +1,4 @@
-# Multi-User JupyterHub Dockerfile - v10 (with xdotool + fixcaps)
+# Multi-User JupyterHub Dockerfile - v10 (CLEANED - removed opencv, nav2, jupyter-git)
 ARG UBUNTU_VERSION=24.04
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -43,13 +43,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends gz-harmonic && 
 # ---- re-refresh Ubuntu key before ROS/Gazebo block (keys expire again) ----
 RUN wget -qO- 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C' | tee /etc/apt/trusted.gpg.d/ubuntu-archive.asc > /dev/null
 
-# 4. Install ROS-Gazebo bridge and additional ROS2 development tools
+# 4. Install ROS-Gazebo bridge and essential ROS2 development tools (CLEANED - removed nav2)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-ros-gz-bridge ros-${ROS_DISTRO}-ros-gz-sim \
     ros-${ROS_DISTRO}-rqt-* ros-${ROS_DISTRO}-rviz2 \
     ros-${ROS_DISTRO}-robot-state-publisher ros-${ROS_DISTRO}-joint-state-publisher-gui \
     ros-${ROS_DISTRO}-tf2-tools ros-${ROS_DISTRO}-tf2-geometry-msgs \
-    ros-${ROS_DISTRO}-navigation2 ros-${ROS_DISTRO}-nav2-bringup \
     ros-${ROS_DISTRO}-turtlesim ros-${ROS_DISTRO}-demo-nodes-cpp ros-${ROS_DISTRO}-demo-nodes-py && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -99,21 +98,15 @@ RUN apt-get update && apt-get install -y nodejs npm && \
     ln -s /usr/local/bin/configurable-http-proxy /usr/bin/configurable-http-proxy && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 10. Install OpenCV dependencies and build tools
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3-opencv libopencv-dev python3-dev build-essential \
-    libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev \
-    libv4l-dev libxvidcore-dev libx264-dev libjpeg-dev libpng-dev \
-    libtiff-dev gfortran openexr libatlas-base-dev pkg-config \
-    libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# 10. REMOVED: OpenCV dependencies (not needed for basic ROS2 functionality)
+# Removed to reduce image size - can be added back if computer vision features needed
 
 # 11. CRITICAL: Install DockerSpawner dependencies in the container
 RUN apt-get update && apt-get install -y --no-install-recommends \
     docker.io && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 12. Create Virtual Environment and Install Python packages including JupyterHub components
+# 12. Create Virtual Environment and Install Python packages (CLEANED - removed opencv and jupyter-git)
 RUN python3 -m venv ${VENV_PATH} && \
     ${VENV_PATH}/bin/pip install --upgrade pip && \
     ${VENV_PATH}/bin/pip install --no-cache-dir \
@@ -124,9 +117,7 @@ RUN python3 -m venv ${VENV_PATH} && \
         xeus-python ruff \
         plotly dash seaborn pandas \
         pillow \
-        jupyterlab-git \
-        jupyterlab-code-formatter jupyterlab-lsp python-lsp-server \
-        opencv-python opencv-contrib-python
+        jupyterlab-code-formatter jupyterlab-lsp python-lsp-server
 
 # 13. Create user directories, config files, and JupyterHub multi-user configuration
 RUN mkdir -p /srv/jupyterhub ${HOME}/shared_workspace ${HOME}/notebooks ${HOME}/ros2_ws/src ${HOME}/.config/openbox && \
@@ -181,7 +172,7 @@ indent-style = 'space'
 
 [tool.ruff.lint.isort]
 known-first-party = ["rclpy", "rclcpp"]
-known-third-party = ["numpy", "matplotlib", "cv2", "tf2_ros", "geometry_msgs", "sensor_msgs", "std_msgs"]
+known-third-party = ["numpy", "matplotlib", "tf2_ros", "geometry_msgs", "sensor_msgs", "std_msgs"]
 
 [tool.ruff.lint.pep8-naming]
 classmethod-decorators = ["classmethod"]
