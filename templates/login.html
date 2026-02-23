@@ -1,0 +1,453 @@
+{% extends "page.html" %}
+
+{% block stylesheet %}
+{{ super() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ─── Reset & Root ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #080810;
+    --surface:   #0f0f1a;
+    --border:    rgba(255,255,255,0.07);
+    --orange:    #f97316;
+    --orange-dim: rgba(249,115,22,0.15);
+    --orange-glow: rgba(249,115,22,0.35);
+    --text:      #f1f0ee;
+    --muted:     #7a7a8a;
+    --github:    #1a1a2e;
+    --google:    #0f0f1a;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  /* ─── Full-page layout ─── */
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-head);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* Kill JupyterHub's default nav/header */
+  #jupyterhub-navbar,
+  .navbar, nav.navbar,
+  footer, #footer { display: none !important; }
+
+  #login-main { flex: 1; }
+
+  /* ─── Animated background grid ─── */
+  .rf-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      linear-gradient(135deg, #080810 0%, #0d0d1f 50%, #080810 100%);
+  }
+  .rf-bg::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(249,115,22,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(249,115,22,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridDrift 20s linear infinite;
+  }
+  .rf-bg::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(249,115,22,0.12) 0%, transparent 70%);
+  }
+  @keyframes gridDrift {
+    from { background-position: 0 0; }
+    to   { background-position: 60px 60px; }
+  }
+
+  /* ─── Scanline overlay ─── */
+  .scanlines {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.04) 2px,
+      rgba(0,0,0,0.04) 4px
+    );
+  }
+
+  /* ─── Outer wrapper ─── */
+  .rf-wrapper {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  /* ─── Left panel ─── */
+  .rf-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 64px 72px;
+    border-right: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .rf-left::after {
+    content: '';
+    position: absolute;
+    right: -1px; top: 15%; bottom: 15%;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--orange), transparent);
+    opacity: 0.6;
+  }
+
+  .rf-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.15em;
+    color: var(--orange);
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border: 1px solid rgba(249,115,22,0.3);
+    border-radius: 2px;
+    width: fit-content;
+    margin-bottom: 40px;
+    background: var(--orange-dim);
+    animation: fadeUp 0.6s ease both;
+  }
+  .rf-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+    box-shadow: 0 0 8px var(--orange);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+
+  .rf-logo {
+    font-family: var(--font-head);
+    font-size: 52px;
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-bottom: 16px;
+    animation: fadeUp 0.7s 0.1s ease both;
+  }
+  .rf-logo span { color: var(--orange); }
+
+  .rf-tagline {
+    font-size: 15px; line-height: 1.6;
+    color: var(--muted);
+    max-width: 340px;
+    margin-bottom: 56px;
+    font-weight: 400;
+    animation: fadeUp 0.7s 0.2s ease both;
+  }
+  .rf-tagline strong { color: var(--text); font-weight: 600; }
+
+  /* Stats row */
+  .rf-stats {
+    display: flex; gap: 40px;
+    animation: fadeUp 0.7s 0.3s ease both;
+  }
+  .rf-stat { display: flex; flex-direction: column; gap: 4px; }
+  .rf-stat-num {
+    font-family: var(--font-mono);
+    font-size: 26px; font-weight: 700;
+    color: var(--orange);
+    letter-spacing: -1px;
+  }
+  .rf-stat-lbl {
+    font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted);
+  }
+
+  /* Divider */
+  .rf-divider {
+    width: 48px; height: 2px;
+    background: linear-gradient(to right, var(--orange), transparent);
+    margin: 48px 0;
+    animation: fadeUp 0.7s 0.35s ease both;
+  }
+
+  /* Tech stack pills */
+  .rf-stack {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    animation: fadeUp 0.7s 0.4s ease both;
+  }
+  .rf-pill {
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.02);
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .rf-pill:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* ─── Right panel ─── */
+  .rf-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 64px 72px;
+  }
+
+  .rf-card {
+    width: 100%;
+    max-width: 400px;
+    animation: fadeUp 0.7s 0.2s ease both;
+  }
+
+  .rf-card-title {
+    font-size: 13px; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--muted);
+    font-family: var(--font-mono);
+    margin-bottom: 8px;
+  }
+  .rf-card-heading {
+    font-size: 32px; font-weight: 800;
+    letter-spacing: -1px; line-height: 1.1;
+    margin-bottom: 36px;
+  }
+
+  /* ─── Auth buttons ─── */
+  .rf-btn {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; padding: 16px 20px;
+    border-radius: 6px;
+    font-family: var(--font-head);
+    font-size: 15px; font-weight: 600;
+    text-decoration: none; cursor: pointer;
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+    position: relative; overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .rf-btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .rf-btn:hover { transform: translateY(-2px); text-decoration: none; }
+  .rf-btn:active { transform: translateY(0); }
+
+  /* Google button */
+  .rf-btn-google {
+    background: #ffffff;
+    color: #1a1a1a;
+    border-color: #e5e5e5;
+  }
+  .rf-btn-google::before { background: rgba(0,0,0,0.04); }
+  .rf-btn-google:hover { border-color: #bbb; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+  .rf-btn-google:hover::before { opacity: 1; }
+  .rf-btn-google .rf-btn-label { color: #1a1a1a; }
+
+  /* GitHub button */
+  .rf-btn-github {
+    background: #161b22;
+    color: var(--text);
+    border-color: rgba(255,255,255,0.1);
+  }
+  .rf-btn-github::before { background: rgba(255,255,255,0.04); }
+  .rf-btn-github:hover { border-color: rgba(255,255,255,0.25); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  .rf-btn-github:hover::before { opacity: 1; }
+
+  .rf-btn-icon { width: 22px; height: 22px; flex-shrink: 0; position: relative; z-index: 1; }
+  .rf-btn-label { position: relative; z-index: 1; }
+
+  /* Separator */
+  .rf-sep {
+    display: flex; align-items: center; gap: 14px;
+    margin: 8px 0 20px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .rf-sep::before, .rf-sep::after {
+    content: ''; flex: 1; height: 1px;
+    background: var(--border);
+  }
+
+  /* Info box */
+  .rf-info {
+    margin-top: 32px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: rgba(255,255,255,0.02);
+    border-left: 3px solid var(--orange);
+  }
+  .rf-info p {
+    font-size: 12px; line-height: 1.7;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+  .rf-info p strong { color: var(--orange); }
+
+  /* Footer note */
+  .rf-footnote {
+    margin-top: 32px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+  }
+  .rf-footnote a { color: var(--orange); text-decoration: none; }
+
+  /* ─── Animations ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── Error alert ─── */
+  .rf-error {
+    margin-bottom: 20px;
+    padding: 14px 18px;
+    border-radius: 6px;
+    border: 1px solid rgba(239,68,68,0.3);
+    background: rgba(239,68,68,0.08);
+    font-size: 13px; color: #f87171;
+    font-family: var(--font-mono);
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 900px) {
+    .rf-wrapper { grid-template-columns: 1fr; }
+    .rf-left { display: none; }
+    .rf-right { padding: 40px 24px; }
+    .rf-card { max-width: 100%; }
+  }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="rf-bg"></div>
+<div class="scanlines"></div>
+
+<div class="rf-wrapper">
+
+  <!-- ── LEFT PANEL ── -->
+  <div class="rf-left">
+    <div class="rf-badge">June 2026 · Cohort Access</div>
+
+    <div class="rf-logo">Ros<span>Forge</span></div>
+    <p class="rf-tagline">
+      Your <strong>ROS2 learning environment</strong> — ready to run.<br>
+      Simulation-first. No setup. Just build.
+    </p>
+
+    <div class="rf-stats">
+      <div class="rf-stat">
+        <span class="rf-stat-num">12</span>
+        <span class="rf-stat-lbl">Weeks</span>
+      </div>
+      <div class="rf-stat">
+        <span class="rf-stat-num">10</span>
+        <span class="rf-stat-lbl">Max students</span>
+      </div>
+      <div class="rf-stat">
+        <span class="rf-stat-num">ROS2</span>
+        <span class="rf-stat-lbl">Jazzy · Nav2</span>
+      </div>
+    </div>
+
+    <div class="rf-divider"></div>
+
+    <div class="rf-stack">
+      <span class="rf-pill">ROS 2 Jazzy</span>
+      <span class="rf-pill">Navigation2</span>
+      <span class="rf-pill">Gazebo</span>
+      <span class="rf-pill">SLAM Toolbox</span>
+      <span class="rf-pill">TF2</span>
+      <span class="rf-pill">RViz2</span>
+      <span class="rf-pill">Python</span>
+    </div>
+  </div>
+
+  <!-- ── RIGHT PANEL ── -->
+  <div class="rf-right">
+    <div class="rf-card">
+
+      <p class="rf-card-title">Student Portal</p>
+      <h1 class="rf-card-heading">Sign in to your<br>workspace</h1>
+
+      {% if login_error %}
+      <div class="rf-error">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        {{ login_error }}
+      </div>
+      {% endif %}
+
+      <!-- Google -->
+      <a href="/hub/google/oauth_login"
+         class="rf-btn rf-btn-google">
+        <svg class="rf-btn-icon" viewBox="0 0 24 24">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        <span class="rf-btn-label">Continue with Google</span>
+      </a>
+
+      <div class="rf-sep">or</div>
+
+      <!-- GitHub -->
+      <a href="/hub/github/oauth_login"
+         class="rf-btn rf-btn-github">
+        <svg class="rf-btn-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+        </svg>
+        <span class="rf-btn-label">Continue with GitHub</span>
+      </a>
+
+      <div class="rf-info">
+        <p>
+          <strong>First time?</strong> Use the same email you registered with.<br>
+          If you have issues accessing your workspace, contact your mentor via WhatsApp.
+        </p>
+      </div>
+
+      <p class="rf-footnote">
+        Need help? <a href="https://wa.me/21620568407" target="_blank">Contact support</a> ·
+        <a href="https://rosforge.com" target="_blank">rosforge.com</a>
+      </p>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+  // Override JupyterHub's default redirect to keep OAuth flow working
+  document.addEventListener('DOMContentLoaded', function() {
+    // Remove any JupyterHub default form if present
+    var defaultForm = document.querySelector('form#login-form');
+    if (defaultForm) defaultForm.style.display = 'none';
+  });
+</script>
+{% endblock %}

@@ -20,10 +20,14 @@ services:
         source: ./jupyterhub_config.py
         target: /srv/jupyterhub/jupyterhub_config.py
         read_only: true
+      - type: bind
+        source: ./templates
+        target: /srv/jupyterhub/templates
+        read_only: true
       # CRITICAL: Docker socket for spawning USER containers
       - /var/run/docker.sock:/var/run/docker.sock
       # Hub persistent data - writable volume
-      - jupyterhub_data:/srv/jupyterhub/data
+      - ./data/jupyterhub_data:/srv/jupyterhub/data
       # FIXED: Writable temp directory for the hub
       - type: tmpfs
         target: /tmp
@@ -34,7 +38,9 @@ services:
       JUPYTERHUB_CRYPT_KEY: "${JUPYTERHUB_CRYPT_KEY}"
       GITHUB_CLIENT_ID: "${GITHUB_CLIENT_ID}"
       GITHUB_CLIENT_SECRET: "${GITHUB_CLIENT_SECRET}"
-      OAUTH_CALLBACK_URL: "https://rosforge.com/hub/oauth_callback"
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET}"
+      OAUTH_CALLBACK_URL: "https://app.rosforge.com/hub/oauth_callback"
       DOCKER_HOST: "unix:///var/run/docker.sock"
       # FIXED: Add proper environment variables
       PYTHONPATH: "/opt/venv/lib/python3.12/site-packages"
@@ -100,10 +106,4 @@ networks:
           gateway: 172.18.0.1
           ip_range: 172.18.0.0/25  # Limit IP range to first 128 addresses
 # OPTIMIZED VOLUMES CONFIGURATION
-volumes:
-  jupyterhub_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./data/jupyterhub_data
+

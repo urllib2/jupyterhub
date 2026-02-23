@@ -92,6 +92,7 @@ RUN python3 -m venv ${VENV_PATH} && \
         jupyterhub==4.0.* jupyterlab notebook ipywidgets \
         matplotlib numpy scipy pandas \
         dockerspawner==12.1.* oauthenticator==16.0.* \
+        jupyterhub-multiauthenticator \
         jupyterhub-idle-culler \
         jupyter-server-proxy \
         ruff \
@@ -166,6 +167,8 @@ RUN chown -R ${USER}:${USER} ${HOME} && \
 COPY docker/start-singleuser.sh /usr/local/bin/start-singleuser.sh
 COPY docker/start-hub.sh /usr/local/bin/start-hub.sh
 COPY student_management.py /srv/jupyterhub/student_management.py
+COPY jupyterhub_config.py /srv/jupyterhub/jupyterhub_config.py
+COPY templates/ /srv/jupyterhub/templates/
 RUN chmod +x /usr/local/bin/start-singleuser.sh && \
     chmod +x /usr/local/bin/start-hub.sh && \
     chmod +r /srv/jupyterhub/student_management.py
