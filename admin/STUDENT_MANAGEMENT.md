@@ -1,85 +1,95 @@
-# RosForge Student Management Cheatsheet
+# RosForge Student Management
 
-Always run commands from the admin folder:
+## Overview
+
+Students are managed via a SQLite database at:
+```
+/home/sami/ros2-teaching/data/jupyterhub_data/students.db
+```
+
+All CLI commands must be run from the `admin/` folder with `sudo`:
 ```bash
-cd ~/ros2-teaching/admin
+cd /home/sami/ros2-teaching/admin
+sudo python3 student_cli.py [command]
 ```
 
 ---
 
-## Add a student
+## Commands
 
-**GitHub user:**
+### Add a student
+
+A student can log in via **GitHub**, **Google**, or **both**.
+
+**GitHub only:**
 ```bash
-python3 student_cli.py add Firstname Lastname --github githubusername --enrolled 2026-06-01 --payment cash --amount 890
+sudo python3 student_cli.py add FirstName LastName --github github_username --payment cash --amount 890
 ```
 
-**Gmail user:**
+**Gmail only:**
 ```bash
-python3 student_cli.py add Firstname Lastname --gmail student@gmail.com --enrolled 2026-06-01 --payment bank --amount 890
+sudo python3 student_cli.py add FirstName LastName --email student@gmail.com --payment cash --amount 890
 ```
 
-Payment options: `cash`, `bank`, `transfer`, `other`, `unknown`
+**Both (recommended):**
+```bash
+sudo python3 student_cli.py add FirstName LastName --github github_username --email student@gmail.com --payment cash --amount 890
+```
+
+Payment options: `cash`, `bank`, `transfer`, `other`
 
 ---
 
-## Remove a student (keeps record, blocks access)
-
-**GitHub user:**
+### List students
 ```bash
-python3 student_cli.py remove --github githubusername
-```
-
-**Gmail user:**
-```bash
-python3 student_cli.py remove --gmail student@gmail.com
-```
-
----
-
-## Delete a student permanently (no recovery)
-
-**GitHub user:**
-```bash
-python3 student_cli.py delete --github githubusername
-```
-
-**Gmail user:**
-```bash
-python3 student_cli.py delete --gmail student@gmail.com
+sudo python3 student_cli.py list
+sudo python3 student_cli.py list --status active
+sudo python3 student_cli.py list --status inactive
 ```
 
 ---
 
-## List students
-
+### Remove a student
 ```bash
-# Active students (default)
-python3 student_cli.py list
+sudo python3 student_cli.py remove github_username
+# or
+sudo python3 student_cli.py remove student@gmail.com
+```
 
-# Inactive students
-python3 student_cli.py list --status inactive
+This marks the student as inactive — they can no longer log in but their record is kept.
 
-# All students
-python3 student_cli.py list --status all
+---
+
+### Statistics
+```bash
+sudo python3 student_cli.py stats
 ```
 
 ---
 
-## Statistics
+## How authentication works
 
+- Student logs in with GitHub → system checks `github_username` in database
+- Student logs in with Google → system checks `email` in database
+- If found and active → access granted
+- If not found → 403 Forbidden
+
+Admin (`github:urllib2`) always has access regardless of the database.
+
+---
+
+## Installment payments
+
+For students paying in 3 installments (300 TND/month), add them at first payment:
 ```bash
-python3 student_cli.py stats
+sudo python3 student_cli.py add FirstName LastName --email student@gmail.com --payment bank --amount 300 --notes "installment 1/3"
 ```
 
 ---
 
-## Notes
+## Cohort limit
 
-- `remove` → marks student as inactive (blocked from login, record kept)
-- `delete` → permanently removes the record (no recovery)
-- Database is stored at `/srv/jupyterhub/data/students.db` (inside Docker volume)
-- No restart needed after adding/removing students — auth checks DB live on every login
-- Students log in at https://app.rosforge.com with Google or GitHub
-- Admin panel: https://app.rosforge.com/hub/admin (login with github:urllib2)
-
+Maximum **10 students**. Check current count:
+```bash
+sudo python3 student_cli.py stats
+```

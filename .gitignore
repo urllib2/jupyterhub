@@ -1,5 +1,26 @@
+# Environment variables
 .env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+shared/venv/
+
+# JupyterHub data
+data/jupyterhub_data/
+
+# User logs
+users/*/log/
+
+# OS files
+.DS_Store
+
+# Backup files
 *.bak
 *~
-
-data/jupyterhub_data/
