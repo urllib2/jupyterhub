@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 RosForge Robot Simulator
-Automatically starts robot_state_publisher and publishes joint states.
-Students only need to run this one file.
+Run this first, then start RViz with the provided config.
 """
 import rclpy
 from rclpy.node import Node
@@ -15,10 +14,6 @@ from tf2_ros import TransformBroadcaster
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 import math
 import time
-import subprocess
-import tempfile
-import os
-import yaml
 
 ROBOT_URDF = """<?xml version="1.0"?>
 <robot name="my_robot">
@@ -82,28 +77,6 @@ ROBOT_URDF = """<?xml version="1.0"?>
 </robot>
 """
 
-def start_robot_state_publisher():
-    """Launch robot_state_publisher via yaml params file."""
-    param_file = tempfile.NamedTemporaryFile(
-        mode='w', suffix='.yaml', delete=False)
-    yaml.dump({
-        'robot_state_publisher': {
-            'ros__parameters': {
-                'robot_description': ROBOT_URDF
-            }
-        }
-    }, param_file)
-    param_file.close()
-    env = os.environ.copy()
-    proc = subprocess.Popen(
-        ['ros2', 'run', 'robot_state_publisher', 'robot_state_publisher',
-         '--ros-args', '--params-file', param_file.name],
-        env=env,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-    )
-    return proc, param_file.name
-
 
 class RobotSimulator(Node):
     def __init__(self):
@@ -157,7 +130,9 @@ class RobotSimulator(Node):
         self.get_logger().info('Services:')
         self.get_logger().info('  /emergency_stop')
         self.get_logger().info('  /reset_position')
-        self.get_logger().info('RViz: Fixed Frame=odom, Add RobotModel+TF')
+        self.get_logger().info('')
+        self.get_logger().info('Next step: run robot_state_publisher in another terminal:')
+        self.get_logger().info('  bash /home/jovyan/course_materials/scripts/start_rsp.sh')
         self.get_logger().info('=' * 50)
 
     def publish_description(self):
@@ -195,7 +170,7 @@ class RobotSimulator(Node):
         self.x += self.vx * math.cos(self.theta) * dt
         self.y += self.vx * math.sin(self.theta) * dt
         self.theta += self.vz * dt
-        self.wheel_pos += self.vx * dt / 0.1  # wheel radius = 0.1m
+        self.wheel_pos += self.vx * dt / 0.1
         self.battery = max(0.0, self.battery - 0.001)
 
         stamp = self.get_clock().now().to_msg()
@@ -225,7 +200,7 @@ class RobotSimulator(Node):
         odom.twist.twist.angular.z = self.vz
         self.odom_pub.publish(odom)
 
-        # Joint states — wheels rotate with robot speed
+        # Joint states
         js = JointState()
         js.header.stamp = stamp
         js.name = ['base_left_wheel_joint', 'base_right_wheel_joint']
@@ -244,9 +219,6 @@ class RobotSimulator(Node):
 
 
 def main(args=None):
-    rsp_proc, param_file = start_robot_state_publisher()
-    time.sleep(1)
-
     rclpy.init(args=args)
     node = RobotSimulator()
     try:
@@ -256,11 +228,6 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.shutdown()
-        rsp_proc.terminate()
-        try:
-            os.unlink(param_file)
-        except Exception:
-            pass
 
 
 if __name__ == '__main__':

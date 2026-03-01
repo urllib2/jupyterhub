@@ -217,7 +217,7 @@ c.JupyterHub.services = [
         "name": "idle-culler",
         "command": [
             sys.executable, "-m", "jupyterhub_idle_culler",
-            "--timeout=1800", "--cull-every=180",
+            "--timeout=7200", "--cull-every=180",
             "--concurrency=1", "--max-age=5400",
         ],
         "admin": True,

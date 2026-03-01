@@ -1,68 +1,95 @@
 Panels:
   - Class: rviz_common/Displays
-    Help Height: 0
     Name: Displays
+    Help Height: 0
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /Grid1
         - /RobotModel1
         - /TF1
       Splitter Ratio: 0.5
     Tree Height: 600
+
   - Class: rviz_common/Views
     Name: Views
+    Expanded:
+      - /Current View1
+    Splitter Ratio: 0.5
 
 Visualization Manager:
   Class: ""
-  Displays:
-    - Alpha: 0.5
-      Cell Size: 1
-      Class: rviz_default_plugins/Grid
-      Color: 160; 160; 164
-      Enabled: true
-      Name: Grid
-    - Class: rviz_default_plugins/RobotModel
-      Enabled: true
-      Name: RobotModel
-      Topic:
-        Value: /robot_description
-    - Class: rviz_default_plugins/TF
-      Enabled: true
-      Frame Timeout: 15
-      Name: TF
-      Show Arrows: true
-      Show Axes: true
-      Show Names: true
   Enabled: true
+  Name: root
+
   Global Options:
     Background Color: 10; 10; 10
     Fixed Frame: odom
     Frame Rate: 30
-  Name: root
+
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Alpha: 0.5
+      Cell Size: 1
+      Color: 160; 160; 164
+
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Description Source: Topic
+      Description Topic: /robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Visual Enabled: true
+
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+      Frame Timeout: 15
+      Marker Scale: 0.5
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+
   Tools:
     - Class: rviz_default_plugins/Interact
     - Class: rviz_default_plugins/MoveCamera
-  Value: true
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+    - Class: rviz_default_plugins/Measure
+    - Class: rviz_default_plugins/SetInitialPose
+    - Class: rviz_default_plugins/SetGoal
+
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 5
-      Enable Stereo Rendering:
-        Stereo Eye Separation: 0.06
-        Stereo Focal Distance: 1
-        Swap Stereo Eyes: false
-        Value: false
+      Name: Current View
+      Distance: 4.0
+      Pitch: 0.7
+      Yaw: 0.7
       Focal Point:
         X: 0
         Y: 0
         Z: 0
-      Focal Shape Fixed Size: true
-      Focal Shape Size: 0.05
-      Invert Z Axis: false
-      Name: Current View
-      Near Clip Distance: 0.01
-      Pitch: 0.6
       Target Frame: <Fixed Frame>
-      Value: Orbit (rviz)
-      Yaw: 5.5
-    Saved: ~
+      Near Clip Distance: 0.01
+      Invert Z Axis: false
+      Enable Stereo Rendering:
+        Value: false
+        Stereo Eye Separation: 0.06
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+
+Window Geometry:
+  Width: 1280
+  Height: 900
+  X: 0
+  Y: 0
+  Displays:
+    collapsed: false
+  Views:
+    collapsed: false
+  Hide Left Dock: false
+  Hide Right Dock: false

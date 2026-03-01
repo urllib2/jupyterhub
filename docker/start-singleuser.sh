@@ -65,6 +65,10 @@ log "Starting GUI services in background..."
         RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION}" \
         DISPLAY=${DISPLAY} \
         bash -c "openbox-session" &
+    sleep 2
+
+    sudo -u jovyan env DISPLAY=${DISPLAY} \
+        bash -c "tint2" &
     
     if [ -f "/home/jovyan/.Xresources" ]; then
         sudo -u jovyan env DISPLAY=${DISPLAY} \

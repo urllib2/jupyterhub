@@ -54,6 +54,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xvfb x11vnc websockify x11-utils xterm openbox x11-xserver-utils \
     tree htop net-tools dbus-x11 \
     terminator \
+    tint2 \
     x11-xkb-utils xdotool && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     echo '#!/bin/bash\nxdotool key Caps_Lock' > /usr/local/bin/fixcaps && \
