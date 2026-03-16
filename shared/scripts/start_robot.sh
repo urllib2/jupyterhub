@@ -2,12 +2,10 @@
 # RosForge — Start Robot System
 # Starts everything: simulator + robot_state_publisher + RViz
 source /opt/ros/jazzy/setup.bash
-
 echo "Starting robot simulator..."
 python3 /home/jovyan/course_materials/scripts/robot_simulator.py &
 SIM_PID=$!
 sleep 2
-
 echo "Starting robot_state_publisher..."
 ros2 topic echo /robot_description --once --field data 2>/dev/null | \
 python3 -c "
@@ -20,9 +18,11 @@ ros2 run robot_state_publisher robot_state_publisher \
   --ros-args --params-file /tmp/rsp_params.yaml &
 RSP_PID=$!
 sleep 2
-
+echo "Starting ROSForge monitor..."
+python3 /home/jovyan/course_materials/scripts/ros2_monitor.py &
+MON_PID=$!
+sleep 1
 echo "Starting RViz..."
 ros2 run rviz2 rviz2 -d /home/jovyan/course_materials/config/rosforge.rviz
-
 # When RViz closes, stop everything
-kill $SIM_PID $RSP_PID 2>/dev/null
+kill $SIM_PID $RSP_PID $MON_PID 2>/dev/null

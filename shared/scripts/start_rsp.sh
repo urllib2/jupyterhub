@@ -2,7 +2,13 @@
 source /opt/ros/jazzy/setup.bash
 
 echo "Waiting for robot_description..."
-ros2 topic echo /robot_description --once --field data 2>/dev/null > /tmp/robot.urdf
+until ros2 topic list 2>/dev/null | grep -q "/robot_description"; do
+    sleep 0.5
+done
+
+sleep 1
+
+ros2 topic echo /robot_description --once --field data 2>/dev/null | grep -v "WARNING" > /tmp/robot.urdf
 
 echo "Starting robot_state_publisher..."
 ros2 run robot_state_publisher robot_state_publisher \

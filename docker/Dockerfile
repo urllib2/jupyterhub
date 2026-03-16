@@ -52,7 +52,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 3. GUI essentials + terminal - OPTIMIZED
 RUN apt-get update && apt-get install -y --no-install-recommends \
     xvfb x11vnc websockify x11-utils xterm openbox x11-xserver-utils \
-    tree htop net-tools dbus-x11 \
+    dbus-x11 evince \
     terminator \
     tint2 \
     x11-xkb-utils xdotool && \
@@ -63,7 +63,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 4. Graphics libraries + Node.js (NO DOCKER) - OPTIMIZED
 RUN apt-get update && apt-get install -y --no-install-recommends \
     mesa-utils libgl1-mesa-dri libglu1-mesa libglx-mesa0 \
-    libqt5widgets5 libqt5gui5 libqt5core5a \
     nodejs npm && \
     npm install -g configurable-http-proxy && \
     ln -s /usr/local/bin/configurable-http-proxy /usr/bin/configurable-http-proxy && \

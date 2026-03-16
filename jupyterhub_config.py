@@ -120,7 +120,7 @@ c.Spawner.default_url = '/lab/tree/course_materials/00_Welcome_Start_Here.ipynb'
 # =============================================================================
 # 4. RESOURCE LIMITS
 # =============================================================================
-c.DockerSpawner.mem_limit     = '600M'
+c.DockerSpawner.mem_limit     = '800M'
 c.DockerSpawner.mem_guarantee = '150M'
 c.DockerSpawner.cpu_limit     = 0.6
 c.DockerSpawner.cpu_guarantee = 0.15
@@ -140,7 +140,7 @@ c.DockerSpawner.extra_host_config = {
         {'name': 'nofile', 'soft': 16384, 'hard': 16384},
         {'name': 'nproc',  'soft': 1024,  'hard': 1024}
     ],
-    'tmpfs': {'/tmp': 'size=64m,noexec'},
+    'tmpfs': {'/tmp': 'size=512m,noexec'},
 }
 
 # =============================================================================
