@@ -115,7 +115,7 @@ c.DockerSpawner.cmd = [
     '--ServerApp.disable_check_xsrf=True'
 ]
 
-c.Spawner.default_url = '/lab/tree/course_materials/00_Welcome_Start_Here.ipynb'
+c.Spawner.default_url = '/lab'
 
 # =============================================================================
 # 4. RESOURCE LIMITS
