@@ -1,0 +1,54 @@
+name: ros2-teaching
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: ros2-teaching-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./favicon.ico:/etc/nginx/favicon.ico:ro
+      - ./ev3:/usr/share/nginx/ev3:ro
+    networks:
+      - ros2-network
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: "0.1"
+        reservations:
+          memory: 64m
+
+  hub:
+    image: ros2-teaching-multiuser:latest
+    container_name: ros2-teaching-hub
+    restart: unless-stopped
+    privileged: true
+    security_opt:
+      - label=disable
+    command: /opt/venv/bin/jupyterhub -f /srv/jupyterhub/jupyterhub_config.py
+    volumes:
+      - ./data/jupyterhub_data:/srv/jupyterhub/data:rw
+      - ./jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py:ro
+      - ./templates:/srv/jupyterhub/templates:ro
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+    tmpfs:
+      - /tmp:size=1g
+    env_file:
+      - .env
+    networks:
+      - ros2-network
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "0.5"
+        reservations:
+          memory: 512m
+
+networks:
+  ros2-network:
+    name: ros2-teaching_ros2-network
+    external: true

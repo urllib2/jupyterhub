@@ -208,6 +208,15 @@ RUN mkdir -p ~/.jupyter/lab/user-settings/@jupyterlab/terminal-extension && \
 }
 EOF
 
+# Disable JupyterLab session restore to prevent "Directory not found" on restart
+RUN mkdir -p ~/.jupyter/lab/user-settings/@jupyterlab/docmanager-extension && \
+    cat > ~/.jupyter/lab/user-settings/@jupyterlab/docmanager-extension/plugin.jupyterlab-settings << 'EOF'
+{
+    "defaultViewers": {},
+    "storeName": ""
+}
+EOF
+
 # 14. Switch back to root and finalize
 USER root
 WORKDIR /home/${USER}
