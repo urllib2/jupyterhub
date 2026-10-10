@@ -1,4 +1,4 @@
-# Multi-User JupyterHub Dockerfile - OPTIMIZED (No Gazebo + URDF Support)
+# Multi-User JupyterHub Dockerfile - ROSFORGE Edition (Meshcat, No noVNC)
 ARG UBUNTU_VERSION=24.04
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -8,12 +8,12 @@ ENV USER=jovyan
 ENV HOME=/home/${USER}
 ENV VENV_PATH=/opt/venv
 
-# ---- refresh Ubuntu archive key (base image keys are stale) ----
+# ---- refresh Ubuntu archive key ----
 RUN apt-get update || true && \
     apt-get install -y --no-install-recommends ca-certificates wget curl && \
     wget -qO- 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C' | tee /etc/apt/trusted.gpg.d/ubuntu-archive.asc > /dev/null
 
-# 1. COMBINED: System setup, ROS/Gazebo repositories, and ROS2 packages installation
+# 1. System setup + ROS2 repository + ROS2 packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl gnupg2 lsb-release wget git sudo ca-certificates openssl vim nano \
     python3-pip python3-venv ubuntu-keyring && \
@@ -31,53 +31,29 @@ RUN echo "/opt/ros/jazzy/lib" >> /etc/ld.so.conf.d/ros2-jazzy.conf && \
     echo "/opt/ros/jazzy/lib/x86_64-linux-gnu" >> /etc/ld.so.conf.d/ros2-jazzy.conf && \
     ldconfig
 
-ENV LD_LIBRARY_PATH="/opt/ros/jazzy/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
-ENV PYTHONPATH="/opt/ros/jazzy/local/lib/python3.12/site-packages:/opt/ros/jazzy/lib/python3.12/site-packages:${PYTHONPATH}"
+ENV LD_LIBRARY_PATH="/opt/ros/jazzy/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu"
+ENV PYTHONPATH="/opt/ros/jazzy/local/lib/python3.12/site-packages:/opt/ros/jazzy/lib/python3.12/site-packages"
 
-# ---- re-refresh Ubuntu key before additional packages ----
+# ---- re-refresh Ubuntu key ----
 RUN wget -qO- 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C' | tee /etc/apt/trusted.gpg.d/ubuntu-archive.asc > /dev/null
 
-# 2. Essential ROS2 development tools (NO GAZEBO) - OPTIMIZED
+# 2. ROS2 tools (NO GUI, NO RViz, NO rqt)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-${ROS_DISTRO}-rviz2 \
     ros-${ROS_DISTRO}-robot-state-publisher \
-    ros-${ROS_DISTRO}-joint-state-publisher-gui \
     ros-${ROS_DISTRO}-tf2-tools \
     ros-${ROS_DISTRO}-tf2-geometry-msgs \
     ros-${ROS_DISTRO}-turtlesim \
-    ros-${ROS_DISTRO}-demo-nodes-py \
-    ros-${ROS_DISTRO}-rqt-graph && \
+    ros-${ROS_DISTRO}-demo-nodes-py && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 3. GUI essentials + terminal - OPTIMIZED
+# 3. Node.js for configurable-http-proxy
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    xvfb x11vnc websockify x11-utils xterm openbox x11-xserver-utils \
-    dbus-x11 evince \
-    terminator \
-    tint2 \
-    x11-xkb-utils xdotool && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    echo '#!/bin/bash\nxdotool key Caps_Lock' > /usr/local/bin/fixcaps && \
-    chmod +x /usr/local/bin/fixcaps
-
-# 4. Graphics libraries + Node.js (NO DOCKER) - OPTIMIZED
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    mesa-utils libgl1-mesa-dri libglu1-mesa libglx-mesa0 \
     nodejs npm && \
     npm install -g configurable-http-proxy && \
     ln -s /usr/local/bin/configurable-http-proxy /usr/bin/configurable-http-proxy && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Force software rendering
-ENV LIBGL_ALWAYS_SOFTWARE=1
-
-# 5. Install noVNC
-RUN git clone --depth 1 https://github.com/novnc/noVNC.git /opt/novnc && \
-    git clone --depth 1 https://github.com/novnc/websockify /opt/novnc/utils/websockify && \
-    chmod +x /opt/novnc/utils/novnc_proxy && \
-    ln -s /opt/novnc/vnc.html /opt/novnc/index.html
-
-# 6. Create jovyan user
+# 4. Create jovyan user
 RUN export OLD_USER=$(id -un 1000 2>/dev/null || true) && \
     if [ -n "$OLD_USER" ]; then userdel -r "$OLD_USER"; fi && \
     groupadd -g 1000 ${USER} && \
@@ -85,7 +61,7 @@ RUN export OLD_USER=$(id -un 1000 2>/dev/null || true) && \
     usermod -aG sudo ${USER} && \
     echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# 7. Create Virtual Environment and Install Python packages - OPTIMIZED
+# 5. Python venv + all packages including Meshcat + nbgrader
 RUN python3 -m venv ${VENV_PATH} && \
     ${VENV_PATH}/bin/pip install --upgrade pip && \
     ${VENV_PATH}/bin/pip install --no-cache-dir \
@@ -97,43 +73,27 @@ RUN python3 -m venv ${VENV_PATH} && \
         jupyter-server-proxy \
         ruff \
         pillow \
-        jupyterlab-lsp python-lsp-server
+        jupyterlab-lsp python-lsp-server \
+        meshcat \
+        yourdfpy \
+        ipympl \
+        sympy \
+        filterpy \
+        networkx \
+        transforms3d \
+        pytransform3d \
+        nbgrader \
+        nbconvert \
+        nbformat \
+        sqlalchemy \
+        flask
 
-# 8. Create user directories, config files - UPDATED: work -> temporary_ws
-RUN mkdir -p /srv/jupyterhub ${HOME}/temporary_ws ${HOME}/.config/openbox && \
-    echo '! XTerm settings' > ${HOME}/.Xresources && \
-    echo 'xterm*faceName: DejaVu Sans Mono' >> ${HOME}/.Xresources && \
-    echo 'xterm*faceSize: 14' >> ${HOME}/.Xresources && \
-    echo 'xterm*background: #282a36' >> ${HOME}/.Xresources && \
-    echo 'xterm*foreground: #f8f8f2' >> ${HOME}/.Xresources && \
-    echo 'xterm*scrollBar: true' >> ${HOME}/.Xresources && \
-    echo 'xterm*rightScrollBar: true' >> ${HOME}/.Xresources && \
-    echo 'xterm*saveLines: 2000' >> ${HOME}/.Xresources && \
-    echo '<?xml version="1.0" encoding="UTF-8"?>' > ${HOME}/.config/openbox/menu.xml && \
-    echo '<openbox_menu xmlns="http://openbox.org/3.4/menu">' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '  <menu id="root-menu" label="Desktop">' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '    <item label="Terminal">' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '      <action name="Execute">' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '        <command>xterm</command>' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '      </action>' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '    </item>' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '    <item label="Terminator">' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '      <action name="Execute">' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '        <command>terminator</command>' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '      </action>' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '    </item>' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '    <separator/>' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '    <item label="Reconfigure">' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '      <action name="Reconfigure"/>' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '    </item>' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '    <item label="Exit">' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '      <action name="Exit"/>' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '    </item>' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '  </menu>' >> ${HOME}/.config/openbox/menu.xml && \
-    echo '</openbox_menu>' >> ${HOME}/.config/openbox/menu.xml
+# 6. Create user directories
+RUN mkdir -p /srv/jupyterhub ${HOME}/.jupyter && \
+    chown -R ${USER}:${USER} ${HOME}
 
-# 9. Create Ruff configuration for ROS2 development
-RUN cat > ${HOME}/pyproject.toml << 'EOF'
+# 7. Ruff configuration
+RUN cat > ${HOME}/pyproject.toml << 'RUFF'
 [tool.ruff]
 line-length = 100
 select = ["E", "W", "F", "I", "N", "UP", "B", "A", "C4", "PIE", "SIM", "RET", "ARG"]
@@ -153,17 +113,15 @@ indent-style = 'space'
 [tool.ruff.lint.isort]
 known-first-party = ["rclpy", "rclcpp"]
 known-third-party = ["numpy", "matplotlib", "tf2_ros", "geometry_msgs", "sensor_msgs", "std_msgs"]
-EOF
+RUFF
 
-# 10. Fix permissions and create required directories
+# 8. Fix permissions
 RUN chown -R ${USER}:${USER} ${HOME} && \
     chmod 755 ${HOME} && \
     chmod 700 /srv/jupyterhub && \
-    mkdir -p /tmp && chmod 1777 /tmp && \
-    mkdir -p /run/user/1000 && chown ${USER}:${USER} /run/user/1000 && chmod 700 /run/user/1000 && \
-    mkdir -p /home/jovyan/srv/jupyterhub && chown ${USER}:${USER} /home/jovyan/srv/jupyterhub
+    mkdir -p /tmp && chmod 1777 /tmp
 
-# 11. Copy startup scripts
+# 9. Copy startup scripts and config
 COPY docker/start-singleuser.sh /usr/local/bin/start-singleuser.sh
 COPY docker/start-hub.sh /usr/local/bin/start-hub.sh
 COPY student_management.py /srv/jupyterhub/student_management.py
@@ -173,30 +131,29 @@ RUN chmod +x /usr/local/bin/start-singleuser.sh && \
     chmod +x /usr/local/bin/start-hub.sh && \
     chmod +r /srv/jupyterhub/student_management.py
 
-# 12. Initialize rosdep
+# 10. Initialize rosdep
 RUN rosdep init || true && \
-    sudo -u ${USER} rosdep update --include-eol-distros || true && \
-    usermod -aG docker ${USER} || true
+    sudo -u ${USER} rosdep update --include-eol-distros || true
 
-# 13. Final user setup with JupyterLab configuration
+# 11. Final user setup
 USER ${USER}
 RUN echo 'source /opt/ros/jazzy/setup.bash' >> ~/.bashrc && \
     echo 'export PATH=${VENV_PATH}/bin:$PATH' >> ~/.bashrc && \
-    sed -i '/ROS_DOMAIN_ID/d' ~/.bashrc && \
     mkdir -p ~/.jupyter && \
-    cat > ~/.jupyter/jupyter_lab_config.py << 'EOF'
+    cat > ~/.jupyter/jupyter_lab_config.py << 'JLAB'
 c.ServerApp.ip = '0.0.0.0'
 c.ServerApp.allow_origin = '*'
 c.ServerApp.allow_remote_access = True
 c.ServerApp.open_browser = False
-c.LabApp.default_url = '/lab'
+c.LabApp.default_url = '/lab?reset'
 c.ServerApp.port = 8888
 c.ServerApp.port_retries = 0
-EOF
+c.LabApp.check_for_updates_class = 'jupyterlab.NeverCheckForUpdate'
+c.ServerApp.disable_check_xsrf = True
+JLAB
 
-# Add JupyterLab terminal default settings (FONT SIZE 18)
 RUN mkdir -p ~/.jupyter/lab/user-settings/@jupyterlab/terminal-extension && \
-    cat > ~/.jupyter/lab/user-settings/@jupyterlab/terminal-extension/plugin.jupyterlab-settings << 'EOF'
+    cat > ~/.jupyter/lab/user-settings/@jupyterlab/terminal-extension/plugin.jupyterlab-settings << 'TERM'
 {
     "fontFamily": "monospace",
     "fontSize": 18,
@@ -206,21 +163,19 @@ RUN mkdir -p ~/.jupyter/lab/user-settings/@jupyterlab/terminal-extension && \
     "closeOnExit": true,
     "theme": "inherit"
 }
-EOF
+TERM
 
-# Disable JupyterLab session restore to prevent "Directory not found" on restart
 RUN mkdir -p ~/.jupyter/lab/user-settings/@jupyterlab/docmanager-extension && \
-    cat > ~/.jupyter/lab/user-settings/@jupyterlab/docmanager-extension/plugin.jupyterlab-settings << 'EOF'
+    cat > ~/.jupyter/lab/user-settings/@jupyterlab/docmanager-extension/plugin.jupyterlab-settings << 'DOC'
 {
     "defaultViewers": {},
     "storeName": ""
 }
-EOF
+DOC
 
-# 14. Switch back to root and finalize
+# 12. Back to root
 USER root
 WORKDIR /home/${USER}
-EXPOSE 8000 8888 6080
+EXPOSE 8000 8888
 
-# Default command for spawned containers
 CMD ["/usr/local/bin/start-singleuser.sh"]

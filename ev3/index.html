@@ -1,1 +1,367 @@
-<h1>EV3 Course Coming Soon</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EV3 Robotics Course — RosForge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --primary: #00D4FF; --bg: #050505; --border: rgba(255,255,255,0.05); --text: #E0E0E0; --muted: #9ca3af; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg); color: var(--text);
+    line-height: 1.5; overflow-x: hidden;
+    background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  nav {
+    position: fixed; top: 0; width: 100%; z-index: 50;
+    backdrop-filter: blur(12px); background: rgba(5,5,5,0.85);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    max-width: 1200px; margin: 0 auto; padding: 0 24px;
+    display: flex; justify-content: space-between; align-items: center; height: 72px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: white; }
+  .logo-icon { width: 36px; height: 36px; border-radius: 8px; background: #111; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; color: var(--primary); }
+  .logo-text { font-weight: 700; font-size: 1.1rem; }
+  .logo-text span { color: var(--primary); }
+
+  /* Lang switcher */
+  .lang-switcher { display: flex; gap: 4px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; padding: 4px; }
+  .lang-btn { padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--muted); transition: all 0.2s; font-family: inherit; }
+  .lang-btn.active { background: var(--primary); color: black; }
+  .lang-btn:hover:not(.active) { color: white; }
+
+  /* Page header */
+  .page-header { max-width: 1200px; margin: 0 auto; padding: 100px 24px 48px; }
+  .section-label { color: var(--primary); font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 12px; }
+  .page-title { font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; letter-spacing: -0.02em; }
+  .text-gradient { background: linear-gradient(135deg, #00D4FF 0%, #7000FF 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .page-sub { color: var(--muted); margin-top: 12px; font-size: 1rem; }
+
+  /* Grid */
+  .lessons-section { max-width: 1200px; margin: 0 auto; padding: 0 24px 100px; }
+  .lessons-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .lesson-card { background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; text-decoration: none; color: var(--text); display: flex; flex-direction: column; transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s; }
+  .lesson-card:hover { border-color: rgba(0,212,255,0.35); transform: translateY(-4px); box-shadow: 0 0 30px rgba(0,212,255,0.1); }
+  .lesson-img { width: 100%; height: 190px; background: #0d0d0d; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .lesson-img img { width: 100%; height: 100%; object-fit: contain; padding: 16px; transition: transform 0.3s; }
+  .lesson-card:hover .lesson-img img { transform: scale(1.05); }
+  .lesson-img-placeholder { color: rgba(255,255,255,0.12); }
+  .lesson-body { padding: 20px 24px 24px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .lesson-num { font-size: 11px; color: var(--primary); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  .lesson-name { font-size: 1.1rem; font-weight: 700; color: white; }
+  .lesson-open { margin-top: auto; padding-top: 14px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); font-weight: 500; transition: color 0.2s; }
+  .lesson-card:hover .lesson-open { color: var(--primary); }
+  .lesson-open svg { transition: transform 0.2s; }
+  .lesson-card:hover .lesson-open svg { transform: translateX(4px); }
+
+  /* CTA */
+  .cta-box { margin-top: 64px; padding: 48px 40px; border-radius: 20px; border: 1px solid rgba(0,212,255,0.2); background: rgba(0,212,255,0.03); text-align: center; }
+  .btn-primary { display: inline-flex; align-items: center; gap: 10px; background: var(--primary); color: black; padding: 16px 32px; border-radius: 8px; font-weight: 700; font-size: 1rem; text-decoration: none; transition: opacity 0.2s; }
+  .btn-primary:hover { opacity: 0.85; }
+
+  footer { border-top: 1px solid var(--border); padding: 32px 24px; max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+  footer a { color: var(--muted); font-size: 14px; text-decoration: none; transition: color 0.2s; }
+  footer a:hover { color: var(--primary); }
+
+  #particle-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0.35; }
+  .content { position: relative; z-index: 1; }
+
+  @media (max-width: 640px) { .lessons-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 400px) { .lessons-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<canvas id="particle-canvas"></canvas>
+<div class="content">
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="logo">
+      <div class="logo-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="10" x="3" y="11" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg>
+      </div>
+      <span class="logo-text">Ros<span>Forge</span></span>
+    </a>
+    <div class="lang-switcher">
+      <button class="lang-btn active" onclick="setLang('fr')">FR</button>
+      <button class="lang-btn" onclick="setLang('en')">EN</button>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <span class="section-label">Junior Robotics Lab · By RosForge</span>
+  <h1 class="page-title">Build Real Robots with <span class="text-gradient">LEGO EV3.</span></h1>
+  <p class="page-sub">22 structured lessons. Each one centers on a unique robot project. Videos included.</p>
+</div>
+
+<section class="lessons-section">
+  <div class="lessons-grid" id="lessons-grid">
+
+    <a class="lesson-card" data-fr="fr/01-Edugard/index.html" data-en="en/01-Edugard/index.html">
+      <div class="lesson-img"><img src="Eduguard.png" alt="Edugard"></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 01</div>
+        <div class="lesson-name">Edugard</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/02-MiniVoiture/index.html" data-en="en/02-MiniVoiture/index.html">
+      <div class="lesson-img"><img src="MiniVoiture.png" alt="Mini Voiture"></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 02</div>
+        <div class="lesson-name">Mini Voiture</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/03-Knight/index.html" data-en="en/03-Knight/index.html">
+      <div class="lesson-img"><div class="lesson-img-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect width="18" height="10" x="3" y="11" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg></div></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 03</div>
+        <div class="lesson-name">Knight</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/04-Gardner/index.html" data-en="en/04-Gardner/index.html">
+      <div class="lesson-img"><div class="lesson-img-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect width="18" height="10" x="3" y="11" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg></div></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 04</div>
+        <div class="lesson-name">Gardner</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/05-dragster/index.html" data-en="en/05-dragster/index.html">
+      <div class="lesson-img"><img src="Dragster.png" alt="Dragster"></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 05</div>
+        <div class="lesson-name">Dragster</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/06-Workers/index.html" data-en="en/06-Workers/index.html">
+      <div class="lesson-img"><div class="lesson-img-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect width="18" height="10" x="3" y="11" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg></div></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 06</div>
+        <div class="lesson-name">Workers</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/07-SeeSaw/index.html" data-en="en/07-SeeSaw/index.html">
+      <div class="lesson-img"><div class="lesson-img-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect width="18" height="10" x="3" y="11" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg></div></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 07</div>
+        <div class="lesson-name">SeeSaw</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/08-Biped/index.html" data-en="en/08-Biped/index.html">
+      <div class="lesson-img"><img src="Biped.png" alt="Biped"></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 08</div>
+        <div class="lesson-name">Biped</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/09-GenBot/index.html" data-en="en/09-GenBot/index.html">
+      <div class="lesson-img"><img src="GenBot.png" alt="GenBot"></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 09</div>
+        <div class="lesson-name">GenBot</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/10-QuickBot/index.html" data-en="en/10-QuickBot/index.html">
+      <div class="lesson-img"><div class="lesson-img-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect width="18" height="10" x="3" y="11" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg></div></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 10</div>
+        <div class="lesson-name">QuickBot</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/11-Tractor/index.html" data-en="en/11-Tractor/index.html">
+      <div class="lesson-img"><div class="lesson-img-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect width="18" height="10" x="3" y="11" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg></div></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 11</div>
+        <div class="lesson-name">Tractor</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/12-AlarmUltrasSon/index.html" data-en="en/12-AlarmBot/index.html">
+      <div class="lesson-img"><img src="AlarmUltrason.png" alt="AlarmBot"></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 12</div>
+        <div class="lesson-name">AlarmBot</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/12-BarriereBot/index.html" data-en="en/12-BarriereBot/index.html">
+      <div class="lesson-img"><div class="lesson-img-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect width="18" height="10" x="3" y="11" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg></div></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 13</div>
+        <div class="lesson-name">BarriereBot</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/13-UltraSonicBot/index.html" data-en="en/13-UltraSonicBot/index.html">
+      <div class="lesson-img"><div class="lesson-img-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect width="18" height="10" x="3" y="11" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg></div></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 14</div>
+        <div class="lesson-name">UltraSonicBot</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/14-GoalKeeper/index.html" data-en="en/14-GoalKeeper/index.html">
+      <div class="lesson-img"><img src="GoalKeeper.png" alt="GoalKeeper"></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 15</div>
+        <div class="lesson-name">GoalKeeper</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/15-MusicBot/index.html" data-en="en/15-MusicBot/index.html">
+      <div class="lesson-img"><img src="MusicBot.png" alt="MusicBot"></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 16</div>
+        <div class="lesson-name">MusicBot</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/16-SolarTracker/index.html" data-en="en/16-SolarTracker/index.html">
+      <div class="lesson-img"><img src="SolarTracker.png" alt="SolarTracker"></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 17</div>
+        <div class="lesson-name">SolarTracker</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/17-ScannerBot/index.html" data-en="en/17-ScannerBot/index.html">
+      <div class="lesson-img"><img src="ScannerBot.png" alt="ScannerBot"></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 18</div>
+        <div class="lesson-name">ScannerBot</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/18-ChariotBot/index.html" data-en="en/18-ChariotBot/index.html">
+      <div class="lesson-img"><img src="ChariotBot.png" alt="ChariotBot"></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 19</div>
+        <div class="lesson-name">ChariotBot</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/18-TankBot/index.html" data-en="en/18-TankBot/index.html">
+      <div class="lesson-img"><div class="lesson-img-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect width="18" height="10" x="3" y="11" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg></div></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 20</div>
+        <div class="lesson-name">TankBot</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/19-ReileyRover/index.html" data-en="en/19-ReileyRover/index.html">
+      <div class="lesson-img"><img src="RileyRover.png" alt="Riley Rover"></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 21</div>
+        <div class="lesson-name">Riley Rover</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+    <a class="lesson-card" data-fr="fr/20-Educator/index.html" data-en="en/20-Educator/index.html">
+      <div class="lesson-img"><img src="Educator.png" alt="Educator"></div>
+      <div class="lesson-body">
+        <div class="lesson-num">Lesson 22</div>
+        <div class="lesson-name">Educator</div>
+        <div class="lesson-open">Open lesson <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </a>
+
+  </div>
+
+  <div class="cta-box">
+    <span class="section-label">Want to go further?</span>
+    <h2 style="font-size:clamp(1.6rem,3vw,2.2rem);font-weight:700;margin:12px 0 16px;">Learn ROS2 — The Real Deal.</h2>
+    <p style="color:var(--muted);max-width:480px;margin:0 auto 32px;line-height:1.7;">EV3 is where it starts. ROS2 is where careers are built. Join the first ROS2 mentorship program in Tunisia.</p>
+    <a href="https://rosforge.com" target="_blank" class="btn-primary">Discover RosForge <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+  </div>
+</section>
+
+<footer>
+  <div style="font-size:14px;color:var(--muted);">© 2026 <strong style="color:white;">RosForge</strong> · Tunis, Tunisia</div>
+  <div style="display:flex;gap:24px;">
+    <a href="https://rosforge.com">rosforge.com</a>
+    <a href="https://wa.me/21620568407">Contact</a>
+  </div>
+</footer>
+
+</div>
+
+<script>
+  let currentLang = 'fr';
+
+  function setLang(lang) {
+    currentLang = lang;
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.textContent === lang.toUpperCase());
+    });
+    document.querySelectorAll('.lesson-card').forEach(card => {
+      card.href = card.dataset[lang];
+    });
+  }
+
+  // Init with FR
+  setLang('fr');
+
+  // Particles
+  const canvas = document.getElementById('particle-canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+  for (let i = 0; i < 70; i++) {
+    particles.push({ x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight, r: Math.random()*1.2+0.3, dx: (Math.random()-0.5)*0.25, dy: (Math.random()-0.5)*0.25, opacity: Math.random()*0.5+0.15 });
+  }
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p => {
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(0,212,255,${p.opacity})`; ctx.fill();
+      p.x+=p.dx; p.y+=p.dy;
+      if(p.x<0||p.x>canvas.width) p.dx*=-1;
+      if(p.y<0||p.y>canvas.height) p.dy*=-1;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+</script>
+</body>
+</html>

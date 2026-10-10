@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-# OPTIMIZED FOR 4-5 STUDENTS (No Gazebo) - 4GB VPS
-# Auth: GitHub OAuth + Google OAuth (Multi-Authenticator)
+# ROSFORGE JupyterHub Configuration - 10 Students, No noVNC, Meshcat
 from dockerspawner import DockerSpawner
 from oauthenticator.github import GitHubOAuthenticator
 from oauthenticator.google import GoogleOAuthenticator
@@ -17,7 +16,6 @@ c.JupyterHub.hub_bind_url = 'http://0.0.0.0:8081'
 c.JupyterHub.port = 8000
 c.JupyterHub.hub_port = 8081
 
-# Custom templates for RosForge branding
 c.JupyterHub.template_paths = ['/srv/jupyterhub/templates']
 
 # =============================================================================
@@ -25,7 +23,6 @@ c.JupyterHub.template_paths = ['/srv/jupyterhub/templates']
 # =============================================================================
 c.JupyterHub.authenticator_class = MultiAuthenticator
 
-# Multi-Auth
 c.MultiAuthenticator.authenticators = [
     {
         "authenticator_class": "google",
@@ -47,7 +44,6 @@ c.MultiAuthenticator.authenticators = [
     },
 ]
 
-# Shared access control
 c.Authenticator.admin_users       = {"github:urllib2"}
 c.Authenticator.allow_all         = True
 c.Authenticator.auto_login        = False
@@ -118,18 +114,18 @@ c.DockerSpawner.cmd = [
 c.Spawner.default_url = '/lab'
 
 # =============================================================================
-# 4. RESOURCE LIMITS
+# 4. RESOURCE LIMITS (10 students, no noVNC)
 # =============================================================================
-c.DockerSpawner.mem_limit     = '800M'
-c.DockerSpawner.mem_guarantee = '150M'
-c.DockerSpawner.cpu_limit     = 0.6
-c.DockerSpawner.cpu_guarantee = 0.15
+c.DockerSpawner.mem_limit     = '700M'
+c.DockerSpawner.mem_guarantee = '400M'
+c.DockerSpawner.cpu_limit     = 0.4
+c.DockerSpawner.cpu_guarantee = 0.1
 
 # =============================================================================
 # 5. DOCKER HOST CONFIGURATION
 # =============================================================================
 c.DockerSpawner.extra_host_config = {
-    'port_bindings': {6080: None, 8888: None},
+    'port_bindings': {8888: None},
     'auto_remove': False,
     'restart_policy': {'Name': 'no'},
     'shm_size': '64m',
@@ -140,18 +136,18 @@ c.DockerSpawner.extra_host_config = {
         {'name': 'nofile', 'soft': 16384, 'hard': 16384},
         {'name': 'nproc',  'soft': 1024,  'hard': 1024}
     ],
-    'tmpfs': {'/tmp': 'size=512m,noexec'},
+    'tmpfs': {'/tmp': 'size=256m,noexec'},
 }
 
 # =============================================================================
 # 6. TIMEOUTS
 # =============================================================================
 c.DockerSpawner.start_timeout = 90
-c.DockerSpawner.http_timeout  = 15
+c.DockerSpawner.http_timeout  = 60
 c.Spawner.start_timeout       = 90
 
 # =============================================================================
-# 7. ENVIRONMENT VARIABLES
+# 7. ENVIRONMENT VARIABLES (no GUI, no noVNC)
 # =============================================================================
 c.DockerSpawner.environment = {
     'JUPYTER_ENABLE_LAB': '1',
@@ -164,14 +160,9 @@ c.DockerSpawner.environment = {
     'LD_LIBRARY_PATH': '/opt/ros/jazzy/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu',
     'AMENT_PREFIX_PATH':  '/opt/ros/jazzy',
     'COLCON_PREFIX_PATH': '/opt/ros/jazzy',
-    'DISPLAY':           ':1',
-    'QT_X11_NO_MITSHM':  '1',
-    'LIBGL_ALWAYS_SOFTWARE': '1',
-    'QT_QPA_PLATFORM':   'xcb',
     'VENV_PATH':  '/opt/venv',
     'PATH':       '/opt/venv/bin:/opt/ros/jazzy/bin:/usr/local/bin:/usr/bin:/bin',
     'PYTHONPATH': '/opt/venv/lib/python3.12/site-packages:/opt/ros/jazzy/lib/python3.12/site-packages',
-    'DESKTOP_PORT': '6080',
 }
 
 # =============================================================================
@@ -202,14 +193,14 @@ c.ConfigurableHTTPProxy.auth_token   = os.environ.get('JUPYTERHUB_CRYPT_KEY', ''
 c.ConfigurableHTTPProxy.debug        = False
 
 # =============================================================================
-# 10. CONCURRENCY
+# 10. CONCURRENCY (10 students)
 # =============================================================================
-c.JupyterHub.active_server_limit    = 6
-c.JupyterHub.concurrent_spawn_limit = 6
+c.JupyterHub.active_server_limit    = 10
+c.JupyterHub.concurrent_spawn_limit = 10
 c.JupyterHub.init_spawners_timeout  = 1
 
 # =============================================================================
-# 11. IDLE CULLING
+# 11. IDLE CULLING (2 hours timeout)
 # =============================================================================
 c.JupyterHub.load_roles = [{"name": "idle-culler", "services": ["idle-culler"]}]
 c.JupyterHub.services = [
@@ -232,7 +223,7 @@ c.JupyterHub.cookie_secret_file = '/srv/jupyterhub/data/jupyterhub_cookie_secret
 c.JupyterHub.cleanup_servers    = True
 
 # =============================================================================
-# 13. SECURITY & CLOUDFLARE
+# 13. SECURITY
 # =============================================================================
 c.JupyterHub.cookie_max_age_days    = 7
 c.JupyterHub.reset_db               = False

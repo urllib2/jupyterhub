@@ -1,0 +1,569 @@
+/*jslint */
+/*global AdobeEdge: false, window: false, document: false, console:false, alert: false */
+(function (compId) {
+
+    "use strict";
+    var im='images/',
+        aud='media/',
+        vid='media/',
+        js='js/',
+        fonts = {
+            'Digital-7': '<link rel=\"stylesheet\" href=\"fonts.css\" type=\"text/css\" media=\"screen\" title=\"\" charset=\"utf-8\" />',
+            '\'Digital tech\'': '<link rel=\"stylesheet\" href=\"fonts.css\" type=\"text/css\" media=\"screen\" title=\"\" charset=\"utf-8\" />',
+            'MagistralC': '<link rel=\"stylesheet\" href=\"fonts.css\" type=\"text/css\" media=\"screen\" title=\"\" charset=\"utf-8\" />'        },
+        opts = {
+            'gAudioPreloadPreference': 'auto',
+            'gVideoPreloadPreference': 'auto'
+        },
+        resources = [
+        ],
+        scripts = [
+            js+"jquery-2.0.3.min.js",
+            js+"jquery.ui.touch-punch.min.js",
+            js+"jquery-ui.min.js"
+        ],
+        symbols = {
+            "stage": {
+                version: "6.0.0",
+                minimumCompatibleVersion: "5.0.0",
+                build: "6.0.0.400",
+                scaleToFit: "height",
+                centerStage: "horizontal",
+                resizeInstances: false,
+                content: {
+                    dom: [
+                        {
+                            id: 'intergace',
+                            type: 'image',
+                            rect: ['80px', '0px', '1450px', '1080px', 'auto', 'auto'],
+                            fill: ["rgba(0,0,0,0)",im+"intergace.png",'0px','0px']
+                        },
+                        {
+                            id: 'intro',
+                            type: 'group',
+                            rect: ['248px', '-42px', '1014', '318', 'auto', 'auto'],
+                            c: [
+                            {
+                                id: 'CASE_DEFINITION_BLUE',
+                                type: 'image',
+                                rect: ['153px', '165px', '880px', '141px', 'auto', 'auto'],
+                                fill: ["rgba(0,0,0,0)",im+"CASE_DEFINITION_VIOLET1.png",'0px','0px']
+                            },
+                            {
+                                id: 'Definition',
+                                type: 'text',
+                                rect: ['227px', '184px', '787px', '112px', 'auto', 'auto'],
+                                text: "<p style=\"margin: 0px;\">Program your robot so that players repeat the <span style=\"font-weight: 700;\">\"one\"</span> and <span style=\"font-weight: 700;\">\"two\"</span> sounds 5 times​</p>",
+                                font: ['Trebuchet MS, Arial, Helvetica, sans-serif', [36, "px"], "rgba(0,0,0,1)", "500", "none", "", "break-word", "normal"]
+                            },
+                            {
+                                id: 'ROBOT06',
+                                type: 'image',
+                                rect: ['13px', '154px', '160px', '160px', 'auto', 'auto'],
+                                fill: ["rgba(0,0,0,0)",im+"RobotE.png",'0px','0px']
+                            }]
+                        },
+                        {
+                            id: 'larobotique3',
+                            type: 'video',
+                            tag: 'video',
+                            rect: ['-155px', '-13px', '1920', '1080', 'auto', 'auto'],
+                            source: [vid+"2%283%29.webm"],
+                            preload: 'auto',
+                            transform: [[],[],[],['0.99476']]
+                        },
+                        {
+                            id: 'cache_cadre',
+                            type: 'image',
+                            rect: ['80px', '878px', '1450px', '202px', 'auto', 'auto'],
+                            fill: ["rgba(0,0,0,0)",im+"cache_cadre.png",'0px','0px']
+                        },
+                        {
+                            id: 'full_screen',
+                            type: 'image',
+                            rect: ['1256px', '834px', '46px', '47px', 'auto', 'auto'],
+                            clip: 'rect(0px 60px 60px 0px)',
+                            cursor: 'pointer',
+                            fill: ["rgba(0,0,0,0)",im+"full_screen.png",'0px','0px'],
+                            transform: [[],[],[],['0.98039','0.98039']]
+                        },
+                        {
+                            id: 'demo',
+                            type: 'group',
+                            rect: ['-173px', '286px', '1051px', '82', 'auto', 'auto'],
+                            clip: 'rect(0px 1054.28564453125px 82px 900px)',
+                            cursor: 'pointer',
+                            transform: [[],[],[],['0.98953','1.09756']],
+                            c: [
+                            {
+                                id: 'ORANGE',
+                                type: 'image',
+                                rect: ['910px', '7px', '130px', '60px', 'auto', 'auto'],
+                                fill: ["rgba(0,0,0,0)",im+"BOUTON_STANDARD_ORANGE.png",'0px','0px']
+                            },
+                            {
+                                id: 'GREY',
+                                type: 'image',
+                                rect: ['910px', '7px', '130px', '60px', 'auto', 'auto'],
+                                cursor: 'pointer',
+                                fill: ["rgba(0,0,0,0)",im+"BOUTON_STANDARD_GREY.png",'0px','0px']
+                            },
+                            {
+                                id: 'Text3',
+                                type: 'text',
+                                rect: ['921px', '14px', '99px', '32px', 'auto', 'auto'],
+                                clip: 'rect(5.479248046875px 103.4658203125px 35.095703125px 12.32861328125px)',
+                                cursor: 'pointer',
+                                text: "<p style=\"margin: 0px;\">​ &nbsp;Demo</p>",
+                                align: "left",
+                                font: ['MagistralC', [30, "px"], "rgba(0,0,0,1)", "600", "none", "normal", "break-word", ""],
+                                textStyle: ["", "", "", "", "none"]
+                            },
+                            {
+                                id: 'play1',
+                                type: 'image',
+                                rect: ['941px', '0px', '70px', '70px', 'auto', 'auto'],
+                                fill: ["rgba(0,0,0,0)",im+"play1.png",'0px','0px']
+                            },
+                            {
+                                id: 'pause',
+                                type: 'image',
+                                rect: ['941px', '0px', '70px', '70px', 'auto', 'auto'],
+                                fill: ["rgba(0,0,0,0)",im+"pause.png",'0px','0px']
+                            }]
+                        },
+                        {
+                            id: 'solu',
+                            type: 'group',
+                            rect: ['-168px', '300px', '1040', '82', 'auto', 'auto'],
+                            clip: 'rect(0px 1040px 82px 900px)',
+                            cursor: 'pointer',
+                            transform: [[],[],[],['1','1.09756']],
+                            c: [
+                            {
+                                id: 'ORANGE2',
+                                type: 'image',
+                                rect: ['910px', '0px', '130px', '60px', 'auto', 'auto'],
+                                fill: ["rgba(0,0,0,0)",im+"BOUTON_STANDARD_ORANGE2.png",'0px','0px']
+                            },
+                            {
+                                id: 'GREY2',
+                                type: 'image',
+                                rect: ['910px', '0px', '130px', '60px', 'auto', 'auto'],
+                                cursor: 'pointer',
+                                fill: ["rgba(0,0,0,0)",im+"BOUTON_STANDARD_GREY2.png",'0px','0px']
+                            },
+                            {
+                                id: 'Text32',
+                                type: 'text',
+                                rect: ['911px', '11px', '123px', '44px', 'auto', 'auto'],
+                                cursor: 'pointer',
+                                text: "<p style=\"margin: 0px;\">​ &nbsp;Solution</p>",
+                                align: "left",
+                                font: ['MagistralC', [28, "px"], "rgba(0,0,0,1)", "600", "none", "normal", "break-word", ""],
+                                textStyle: ["", "", "", "", "none"]
+                            }]
+                        },
+                        {
+                            id: 'TITRE',
+                            symbolName: 'TITRE_2_1',
+                            type: 'rect',
+                            rect: ['692px', '29px', '390', '57', 'auto', 'auto']
+                        }
+                    ],
+                    style: {
+                        '${Stage}': {
+                            isStage: true,
+                            rect: ['null', 'null', '1650px', '1080', 'auto', 'auto'],
+                            overflow: 'hidden',
+                            fill: ["rgba(240,240,240,0)"]
+                        }
+                    }
+                },
+                timeline: {
+                    duration: 5540,
+                    autoPlay: false,
+                    data: [
+                        [
+                            "eid213",
+                            "left",
+                            5000,
+                            500,
+                            "linear",
+                            "${full_screen}",
+                            '1256px',
+                            '1432px'
+                        ],
+                        [
+                            "eid211",
+                            "height",
+                            5000,
+                            500,
+                            "linear",
+                            "${full_screen}",
+                            '52px',
+                            '57px'
+                        ],
+                        [
+                            "eid212",
+                            "top",
+                            5000,
+                            500,
+                            "linear",
+                            "${full_screen}",
+                            '834px',
+                            '815px'
+                        ],
+                        [
+                            "eid346",
+                            "scaleX",
+                            5040,
+                            500,
+                            "linear",
+                            "${larobotique3}",
+                            '0.71144',
+                            '0.99476'
+                        ],
+                        [
+                            "eid345",
+                            "scaleY",
+                            5040,
+                            500,
+                            "linear",
+                            "${larobotique3}",
+                            '0.70529',
+                            '0.99'
+                        ],
+                        [
+                            "eid214",
+                            "width",
+                            5000,
+                            500,
+                            "linear",
+                            "${full_screen}",
+                            '51px',
+                            '56px'
+                        ],
+                        [
+                            "eid347",
+                            "left",
+                            5040,
+                            500,
+                            "linear",
+                            "${larobotique3}",
+                            '-142px',
+                            '-155px'
+                        ],
+                        [
+                            "eid348",
+                            "clip",
+                            5040,
+                            500,
+                            "linear",
+                            "${larobotique3}",
+                            [155.87562561035,1660,932.85699462891,262],
+                            [99.65303039550781,1660.6610107421875,973.0742797851562,262.6810302734375],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid344",
+                            "top",
+                            5040,
+                            500,
+                            "linear",
+                            "${larobotique3}",
+                            '84px',
+                            '-13px'
+                        ],
+                        [
+                            "eid336",
+                            "scaleY",
+                            5000,
+                            0,
+                            "linear",
+                            "${full_screen}",
+                            '0.98039',
+                            '0.98039'
+                        ],
+                        [
+                            "eid335",
+                            "scaleX",
+                            5000,
+                            0,
+                            "linear",
+                            "${full_screen}",
+                            '0.98039',
+                            '0.98039'
+                        ]
+                    ]
+                }
+            },
+            "TITRE_2_1": {
+                version: "6.0.0",
+                minimumCompatibleVersion: "5.0.0",
+                build: "6.0.0.400",
+                scaleToFit: "none",
+                centerStage: "none",
+                resizeInstances: false,
+                content: {
+                    dom: [
+                        {
+                            textStyle: ['', '', '', '', 'none'],
+                            rect: ['-4px', '0px', '859px', '57px', 'auto', 'auto'],
+                            font: ['Digital-7', [117, 'px'], 'rgba(1,66,65,1.00)', '700', 'none', 'normal', 'break-word', 'normal'],
+                            align: 'center',
+                            id: 'Text6Copy2',
+                            text: '<p style=\"margin: 0px; font-family: Digital-7; font-weight: 600; font-style: normal; text-decoration: none; font-size: 62px; color: rgb(93, 216, 223); background-color: rgba(0, 0, 0, 0); letter-spacing: 0px; text-transform: none; word-spacing: 0px; text-align: left; text-indent: 0px; line-height: normal;\"><span style=\"color: rgb(0, 61, 65); font-size: 64px; font-family: \'Digital tech\'; font-weight: 500;\">Activity</span></p>',
+                            clip: 'rect(0px 900px 57px -196.29614257813px)',
+                            type: 'text'
+                        },
+                        {
+                            textStyle: ['', '', '', '', 'none'],
+                            rect: ['-4px', '0px', '766px', '57px', 'auto', 'auto'],
+                            font: ['Digital-7', [117, 'px'], 'rgba(152,252,250,1.00)', '700', 'none', 'normal', 'break-word', 'normal'],
+                            align: 'center',
+                            id: 'Text6',
+                            text: '<p style=\"margin: 0px; font-family: Digital-7; font-weight: 600; font-style: normal; text-decoration: none; font-size: 62px; color: rgb(93, 216, 223); background-color: rgba(0, 0, 0, 0); letter-spacing: 0px; text-transform: none; word-spacing: 0px; text-align: left; text-indent: 0px; line-height: normal;\">​<span style=\"font-size: 64px; font-family: \'Digital tech\'; font-weight: 500;\">Activity</span></p>',
+                            clip: 'rect(0px 650px 57px -155.55541992188px)',
+                            type: 'text'
+                        }
+                    ],
+                    style: {
+                        '${symbolSelector}': {
+                            isStage: 'true',
+                            rect: [undefined, undefined, '390px', '57px']
+                        }
+                    }
+                },
+                timeline: {
+                    duration: 5000,
+                    autoPlay: true,
+                    data: [
+                        [
+                            "eid132",
+                            "clip",
+                            0,
+                            500,
+                            "linear",
+                            "${Text6}",
+                            [0,0,57,0],
+                            [0,60,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid112",
+                            "clip",
+                            500,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,60,57,0],
+                            [0,100,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid114",
+                            "clip",
+                            750,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,100,57,0],
+                            [0,140,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid116",
+                            "clip",
+                            1000,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,140,57,0],
+                            [0,160,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid118",
+                            "clip",
+                            1250,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,160,57,0],
+                            [0,190,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid120",
+                            "clip",
+                            1500,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,190,57,0],
+                            [0,220,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid122",
+                            "clip",
+                            1750,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,220,57,0],
+                            [0,260,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid124",
+                            "clip",
+                            2000,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,260,57,0],
+                            [0,270,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid126",
+                            "clip",
+                            2250,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,270,57,0],
+                            [0,290,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid128",
+                            "clip",
+                            2500,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,290,57,0],
+                            [0,320,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid130",
+                            "clip",
+                            2750,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,320,57,0],
+                            [0,350,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid157",
+                            "clip",
+                            3000,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,350,57,0],
+                            [0,380,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid159",
+                            "clip",
+                            3250,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,380,57,0],
+                            [0,405,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid161",
+                            "clip",
+                            3500,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,405,57,0],
+                            [0,475,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid165",
+                            "clip",
+                            3750,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,475,57,0],
+                            [0,515,57,0],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid167",
+                            "clip",
+                            4000,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,515,57,0],
+                            [0,530,57,-155.55541992188],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid173",
+                            "clip",
+                            4250,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,530,57,-155.555419921875],
+                            [0,555,57,-155.55541992188],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid175",
+                            "clip",
+                            4500,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,555,57,-155.555419921875],
+                            [0,595,57,-155.55541992188],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid177",
+                            "clip",
+                            4750,
+                            250,
+                            "linear",
+                            "${Text6}",
+                            [0,595,57,-155.555419921875],
+                            [0,650,57,-155.55541992188],
+                            {valueTemplate: 'rect(@@0@@px @@1@@px @@2@@px @@3@@px)'}
+                        ],
+                        [
+                            "eid476",
+                            "top",
+                            5000,
+                            0,
+                            "linear",
+                            "${Text6}",
+                            '0px',
+                            '0px'
+                        ]
+                    ]
+                }
+            }
+        };
+
+    AdobeEdge.registerCompositionDefn(compId, symbols, fonts, scripts, resources, opts);
+
+    if (!window.edge_authoring_mode) AdobeEdge.getComposition(compId).load("0190_Act2_edgeActions.js");
+})("EDGE-6689876");

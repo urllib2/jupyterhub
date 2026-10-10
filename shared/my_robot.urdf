@@ -1,0 +1,14 @@
+<robot name="my_robot">
+  <material name="blue"><color rgba="0.2 0.4 0.9 1"/></material>
+  <material name="dark"><color rgba="0.15 0.15 0.18 1"/></material>
+  <material name="red"><color rgba="0.9 0.2 0.2 1"/></material>
+
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.3 0.2 0.08"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+  </link>
+</robot>

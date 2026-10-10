@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
+    <title></title>
+    
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="keywords" content=" Test" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <link rel="stylesheet" href="css/reveal.css">
+    <!-- Set theme: beige, default, moon, right, serif, simple, sky, solarized -->
+    <link rel="stylesheet" href="css/theme/jrl.css" id="theme">
+    <!-- For syntax highlighting -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+    <!-- If the query includes 'print-pdf', use the PDF print sheet -->
+    <script type="text/javascript">
+        document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+    </script>
+    <!--[if lt IE 9]>
+        <script src="lib/js/html5shiv.js"></script>
+    <![endif]-->
+</head>
+<body>
+    <div class="reveal">
+        
+        <!-- Any section element inside of this container is displayed as a slide -->
+        <div class="slides">
+            <!-- Each section is one slide --><section>
+<iframe data-src="JRL/EV3/html/0100_QuizTactile.html" width="1650px" height="1080px"></iframe>
+</section>
+<section>
+<iframe data-src="JRL/EV3/html/0110_QuizCondition.html" width="1650px" height="1080px"></iframe>
+</section>
+<section>
+<iframe data-src="JRL/EV3/html/0115_PresentationCaptCouleur.html" width="1650px" height="1080px"></iframe>
+</section>
+<section>
+<iframe data-src="JRL/EV3/html/0130_BlocCouleur.html" width="1650px" height="1080px"></iframe>
+</section>
+<section>
+<iframe data-src="JRL/EV3/html/0170_LesModesCapteur.html" width="1650px" height="1080px"></iframe>
+</section>
+<section>
+<iframe data-src="JRL/EV3/html/0140_Colordetection.html" width="1650px" height="1080px"></iframe>
+</section>
+<section>
+<iframe data-src="JRL/EV3/html/0160_Activite1.html" width="1650px" height="1080px"></iframe>
+</section>
+<section>
+<iframe data-src="JRL/EV3/html/0180_Videolyxlophone.html" width="1650px" height="1080px"></iframe>
+</section>
+<section>
+<iframe data-src="JRL/EV3/html/0190_3D.html" width="1650px" height="1080px"></iframe>
+</section>
+<section>
+<div id="stage2">
+<iframe data-src="JRL/EV3/html/0200_Montage.html" width="1490px" height="780px">
+</iframe>
+</div>
+</section>
+<section>
+<iframe data-src="JRL/EV3/html/0210_Ex1.html" width="1650px" height="1080px"></iframe>
+</section>
+<section>
+<iframe data-src="JRL/EV3/html/0220_PartieHBD.html" width="1650px" height="1080px"></iframe>
+</section>
+<section>
+<iframe data-src="JRL/EV3/html/0235_Challenge.html" width="1650px" height="1080px"></iframe>
+</section>
+<section>
+<iframe data-src="JRL/EV3/html/0240_Desassemblage.html" width="1650px" height="1080px"></iframe>
+</section>
+<section>
+<iframe data-src="JRL/EV3/html/0240_Evaluation.html" width="1650px" height="1080px"></iframe>
+</section>
+ </div>
+        
+    </div>
+     <script src="lib/js/head.min.js"></script>
+    <script src="answers.js"></script>
+    <script src="js/reveal.js"></script>
+    <script type="text/javascript">
+        // Full list of configuration options available here:
+        // https://github.com/hakimel/reveal.js#configuration
+        Reveal.initialize({
+        //Set how manu questions in first and second quiz
+	quiz_1_totalCount: 0,
+	quiz_2_totalCount: 0,
+	//Set how many pages after second quiz will appear.
+	afterQuiz2Pages: 0,
+	
+	//Set how many pages before first quiz will appear.
+	beforeQuiz1Pages: 0,
+
+
+        // Display an ev3software button
+	ev3software: true,
+
+        // The "normal" size of the presentation, aspect ratio will be preserved
+        // when the presentation is scaled to fit different resolutions. Can be
+        // specified using percentage units.
+        width: 1650,
+        height: 1080,
+
+        // Factor of the display size that should remain empty around the content
+        margin: 0.0,
+
+        // Bounds for smallest/largest possible scale to apply to content
+        minScale: 0.1,
+        maxScale: 1.0,
+        
+        // Display controls in the bottom right corner
+        controls: true,
+
+        // Display a presentation progress bar
+        progress: true,
+	
+	// Display the page number of the current slide
+	slideNumber: "c",
+        
+	// Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable touch events for navigation
+        touch: true,
+
+        // Enable the slide overview mode
+        overview: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // Transition style
+        transition: 'none', // default/cube/page/concave/zoom/linear/fade/none
+
+        // Transition speed
+        transitionSpeed: 'default', // default/fast/slow
+
+        // Transition style for full page backgrounds
+        backgroundTransition: 'default', // default/linear/none
+
+ // Number of slides away from the current that are visible
+   viewDistance: 2,     
+ 
+        // Optional libraries used to extend on reveal.js
+        dependencies: [
+            { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+            { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+            { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+            { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+            { src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } }
+        ]
+        });
+    </script>
+<script type="text/javascript">
+
+		
+
+	function setNavigationLocked(nav_bttn) {try {Reveal.setNavButtonsEnabled_inner(!nav_bttn);} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);} }
+		
+	function setCurrentPage(pageIndex, partIndex, pageNumber, totalPagesCount) {
+			try {Reveal.setCurrentPage(pageIndex, partIndex);} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);}
+		}
+
+		
+	function getCurrentPage() {
+		var currentPage;
+		try {currentPage = Reveal.get_indexh().toString() +"," + Reveal.get_indexv().toString()+","+(Reveal.getSlidePastCount()+1).toString()+","+Math.floor(Reveal.getProgress()*100).toString()} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);}
+	return currentPage;}
+
+	function getEV3projectState() {
+		var state;
+		try {state = Reveal.getEV3projectState();} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);}
+	return state;}	
+	
+
+	function setEV3projectOpened() {try {Reveal.setEV3projectOpened();} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);}}	
+	
+	function setUser1Image(url1) {try {Reveal.setUser1Image(url1);} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);}}
+	function setUser2Image(url2) {try {Reveal.setUser2Image(url2);} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);}}
+	function setUser1Name(name1) {try {Reveal.setUser1Name(name1);} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);}}
+	function setUser2Name(name2) {try {Reveal.setUser2Name(name2);} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);}}
+	
+	function getUser1AnswersQ1() {
+		var ans;
+		try {ans = Reveal.getUser1AnswersQ1();} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);}
+	return ans;}
+
+	function getUser2AnswersQ1() {
+		var ans;
+		try {ans = Reveal.getUser2AnswersQ1();} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);}
+	return ans;}
+
+	function getUser1AnswersQ2() {
+		var ans;
+		try {ans = Reveal.getUser1AnswersQ2();} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);}
+	return (ans);}
+
+	function getUser2AnswersQ2() {
+		var ans;
+		try {ans = Reveal.getUser2AnswersQ2();} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);}
+	return (ans);}
+
+	function setPCnumber(number) {try {Reveal.setPCnumber(number);} catch (e){console.log('Error'+e.name + ":" + e.message + "\n" + e.stack);}}
+
+	function setReadyToChangeSlideTop(state) {Reveal.setReadyToChangeSlide(state);}		
+	
+	
+
+	</script>
+
+<script type="text/javascript">
+var gr_goal_params = {
+ param_0 : '',
+ param_1 : '',
+ param_2 : '',
+ param_3 : '',
+ param_4 : '',
+ param_5 : ''
+};</script>
+<script type="text/javascript" src="https://app.getresponse.com/goals_log.js?p=1808103&u=SgXuL"></script>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-94124311-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+<!-- Yandex.Metrika counter -->
+<script type="text/javascript" >
+    (function (d, w, c) {
+        (w[c] = w[c] || []).push(function() {
+            try {
+                w.yaCounter44962159 = new Ya.Metrika({
+                    id:44962159,
+                    clickmap:true,
+                    trackLinks:true,
+                    accurateTrackBounce:true,
+                    webvisor:true
+                });
+            } catch(e) { }
+        });
+
+        var n = d.getElementsByTagName("script")[0],
+            s = d.createElement("script"),
+            f = function () { n.parentNode.insertBefore(s, n); };
+        s.type = "text/javascript";
+        s.async = true;
+        s.src = "https://mc.yandex.ru/metrika/watch.js";
+
+        if (w.opera == "[object Opera]") {
+            d.addEventListener("DOMContentLoaded", f, false);
+        } else { f(); }
+    })(document, window, "yandex_metrika_callbacks");
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/44962159" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+<!-- /Yandex.Metrika counter -->
+
+</body>
+</html>
+?>
